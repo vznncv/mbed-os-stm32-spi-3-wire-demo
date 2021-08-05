@@ -1,0 +1,727 @@
+=========================== Test SPI ===========================
+Target freq: 200000
+API type: synchronous
+======== initialization ========
+bmx160: target SPI frequency: 200000 Hz; actual SPI frequency: 390625 Hz
+bmx160: SPI API type: synchronous
+bmx160: transaction  0; err =  0; data: >7E>B6
+bmx160: transaction  1; err =  0; data: >6B>01
+bmx160: transaction  2; err =  0; data: >7E>11
+============= test 1 ===========
+bmx160: transaction  3; err =  0; data: >80<D8
+============= test 2 ===========
+bmx160: transaction  4; err =  0; data: >71>00>00>00>00>00>00
+bmx160: transaction  5; err =  0; data: >F1<00<00<00<00<00<00
+bmx160: transaction  6; err =  0; data: >71>00>01>02>03>04>05
+bmx160: transaction  7; err =  0; data: >F1<00<01<02<03<04<05
+bmx160: transaction  8; err =  0; data: >71>00>02>04>06>08>0A
+bmx160: transaction  9; err =  0; data: >F1<00<02<04<06<08<0A
+bmx160: transaction 10; err =  0; data: >71>00>03>06>09>0C>0F
+bmx160: transaction 11; err =  0; data: >F1<00<03<06<09<0C<0F
+bmx160: transaction 12; err =  0; data: >71>00>04>08>0C>10>14
+bmx160: transaction 13; err =  0; data: >F1<00<04<08<0C<10<14
+bmx160: transaction 14; err =  0; data: >71>00>05>0A>0F>14>19
+bmx160: transaction 15; err =  0; data: >F1<00<05<0A<0F<14<19
+bmx160: transaction 16; err =  0; data: >71>00>06>0C>12>18>1E
+bmx160: transaction 17; err =  0; data: >F1<00<06<0C<12<18<1E
+bmx160: transaction 18; err =  0; data: >71>00>07>0E>15>1C>23
+bmx160: transaction 19; err =  0; data: >F1<00<07<0E<15<1C<23
+bmx160: transaction 20; err =  0; data: >71>00>08>10>18>20>28
+bmx160: transaction 21; err =  0; data: >F1<00<08<10<18<20<28
+bmx160: transaction 22; err =  0; data: >71>00>09>12>1B>24>2D
+bmx160: transaction 23; err =  0; data: >F1<00<09<12<1B<24<2D
+bmx160: transaction 24; err =  0; data: >71>00>0A>14>1E>28>32
+bmx160: transaction 25; err =  0; data: >F1<00<0A<14<1E<28<32
+bmx160: transaction 26; err =  0; data: >71>00>0B>16>21>2C>37
+bmx160: transaction 27; err =  0; data: >F1<00<0B<16<21<2C<37
+bmx160: transaction 28; err =  0; data: >71>00>0C>18>24>30>3C
+bmx160: transaction 29; err =  0; data: >F1<00<0C<18<24<30<3C
+bmx160: transaction 30; err =  0; data: >71>00>0D>1A>27>34>41
+bmx160: transaction 31; err =  0; data: >F1<00<0D<1A<27<34<41
+bmx160: transaction 32; err =  0; data: >71>00>0E>1C>2A>38>46
+bmx160: transaction 33; err =  0; data: >F1<00<0E<1C<2A<38<46
+bmx160: transaction 34; err =  0; data: >71>00>0F>1E>2D>3C>4B
+bmx160: transaction 35; err =  0; data: >F1<00<0F<1E<2D<3C<4B
+bmx160: transaction 36; err =  0; data: >71>00>10>20>30>40>50
+bmx160: transaction 37; err =  0; data: >F1<00<10<20<30<40<50
+bmx160: transaction 38; err =  0; data: >71>00>11>22>33>44>55
+bmx160: transaction 39; err =  0; data: >F1<00<11<22<33<44<55
+bmx160: transaction 40; err =  0; data: >71>00>12>24>36>48>5A
+bmx160: transaction 41; err =  0; data: >F1<00<12<24<36<48<5A
+bmx160: transaction 42; err =  0; data: >71>00>13>26>39>4C>5F
+bmx160: transaction 43; err =  0; data: >F1<00<13<26<39<4C<5F
+bmx160: transaction 44; err =  0; data: >71>00>14>28>3C>50>64
+bmx160: transaction 45; err =  0; data: >F1<00<14<28<3C<50<64
+bmx160: transaction 46; err =  0; data: >71>00>15>2A>3F>54>69
+bmx160: transaction 47; err =  0; data: >F1<00<15<2A<3F<54<69
+bmx160: transaction 48; err =  0; data: >71>00>16>2C>42>58>6E
+bmx160: transaction 49; err =  0; data: >F1<00<16<2C<42<58<6E
+bmx160: transaction 50; err =  0; data: >71>00>17>2E>45>5C>73
+bmx160: transaction 51; err =  0; data: >F1<00<17<2E<45<5C<73
+bmx160: transaction 52; err =  0; data: >71>00>18>30>48>60>78
+bmx160: transaction 53; err =  0; data: >F1<00<18<30<48<60<78
+bmx160: transaction 54; err =  0; data: >71>00>19>32>4B>64>7D
+bmx160: transaction 55; err =  0; data: >F1<00<19<32<4B<64<7D
+bmx160: transaction 56; err =  0; data: >71>00>1A>34>4E>68>82
+bmx160: transaction 57; err =  0; data: >F1<00<1A<34<4E<68<82
+bmx160: transaction 58; err =  0; data: >71>00>1B>36>51>6C>87
+bmx160: transaction 59; err =  0; data: >F1<00<1B<36<51<6C<87
+bmx160: transaction 60; err =  0; data: >71>00>1C>38>54>70>8C
+bmx160: transaction 61; err =  0; data: >F1<00<1C<38<54<70<8C
+bmx160: transaction 62; err =  0; data: >71>00>1D>3A>57>74>91
+bmx160: transaction 63; err =  0; data: >F1<00<1D<3A<57<74<91
+bmx160: transaction 64; err =  0; data: >71>00>1E>3C>5A>78>96
+bmx160: transaction 65; err =  0; data: >F1<00<1E<3C<5A<78<96
+bmx160: transaction 66; err =  0; data: >71>00>1F>3E>5D>7C>9B
+bmx160: transaction 67; err =  0; data: >F1<00<1F<3E<5D<7C<9B
+============= results ==========
+- total tests ok:        33
+- total tests ok (data): 33
+- total tests error:     0
+- status:                OK
+================================================================
+
+=========================== Test SPI ===========================
+Target freq: 1000000
+API type: synchronous
+======== initialization ========
+bmx160: target SPI frequency: 1000000 Hz; actual SPI frequency: 781250 Hz
+bmx160: SPI API type: synchronous
+bmx160: transaction  0; err =  0; data: >7E>B6
+bmx160: transaction  1; err =  0; data: >6B>01
+bmx160: transaction  2; err =  0; data: >7E>11
+============= test 1 ===========
+bmx160: transaction  3; err =  0; data: >80<D8
+============= test 2 ===========
+bmx160: transaction  4; err =  0; data: >71>00>00>00>00>00>00
+bmx160: transaction  5; err =  0; data: >F1<00<00<00<00<00<00
+bmx160: transaction  6; err =  0; data: >71>00>01>02>03>04>05
+bmx160: transaction  7; err =  0; data: >F1<00<01<02<03<04<05
+bmx160: transaction  8; err =  0; data: >71>00>02>04>06>08>0A
+bmx160: transaction  9; err =  0; data: >F1<00<02<04<06<08<0A
+bmx160: transaction 10; err =  0; data: >71>00>03>06>09>0C>0F
+bmx160: transaction 11; err =  0; data: >F1<00<03<06<09<0C<0F
+bmx160: transaction 12; err =  0; data: >71>00>04>08>0C>10>14
+bmx160: transaction 13; err =  0; data: >F1<00<04<08<0C<10<14
+bmx160: transaction 14; err =  0; data: >71>00>05>0A>0F>14>19
+bmx160: transaction 15; err =  0; data: >F1<00<05<0A<0F<14<19
+bmx160: transaction 16; err =  0; data: >71>00>06>0C>12>18>1E
+bmx160: transaction 17; err =  0; data: >F1<00<06<0C<12<18<1E
+bmx160: transaction 18; err =  0; data: >71>00>07>0E>15>1C>23
+bmx160: transaction 19; err =  0; data: >F1<00<07<0E<15<1C<23
+bmx160: transaction 20; err =  0; data: >71>00>08>10>18>20>28
+bmx160: transaction 21; err =  0; data: >F1<00<08<10<18<20<28
+bmx160: transaction 22; err =  0; data: >71>00>09>12>1B>24>2D
+bmx160: transaction 23; err =  0; data: >F1<00<09<12<1B<24<2D
+bmx160: transaction 24; err =  0; data: >71>00>0A>14>1E>28>32
+bmx160: transaction 25; err =  0; data: >F1<00<0A<14<1E<28<32
+bmx160: transaction 26; err =  0; data: >71>00>0B>16>21>2C>37
+bmx160: transaction 27; err =  0; data: >F1<00<0B<16<21<2C<37
+bmx160: transaction 28; err =  0; data: >71>00>0C>18>24>30>3C
+bmx160: transaction 29; err =  0; data: >F1<00<0C<18<24<30<3C
+bmx160: transaction 30; err =  0; data: >71>00>0D>1A>27>34>41
+bmx160: transaction 31; err =  0; data: >F1<00<0D<1A<27<34<41
+bmx160: transaction 32; err =  0; data: >71>00>0E>1C>2A>38>46
+bmx160: transaction 33; err =  0; data: >F1<00<0E<1C<2A<38<46
+bmx160: transaction 34; err =  0; data: >71>00>0F>1E>2D>3C>4B
+bmx160: transaction 35; err =  0; data: >F1<00<0F<1E<2D<3C<4B
+bmx160: transaction 36; err =  0; data: >71>00>10>20>30>40>50
+bmx160: transaction 37; err =  0; data: >F1<00<10<20<30<40<50
+bmx160: transaction 38; err =  0; data: >71>00>11>22>33>44>55
+bmx160: transaction 39; err =  0; data: >F1<00<11<22<33<44<55
+bmx160: transaction 40; err =  0; data: >71>00>12>24>36>48>5A
+bmx160: transaction 41; err =  0; data: >F1<00<12<24<36<48<5A
+bmx160: transaction 42; err =  0; data: >71>00>13>26>39>4C>5F
+bmx160: transaction 43; err =  0; data: >F1<00<13<26<39<4C<5F
+bmx160: transaction 44; err =  0; data: >71>00>14>28>3C>50>64
+bmx160: transaction 45; err =  0; data: >F1<00<14<28<3C<50<64
+bmx160: transaction 46; err =  0; data: >71>00>15>2A>3F>54>69
+bmx160: transaction 47; err =  0; data: >F1<00<15<2A<3F<54<69
+bmx160: transaction 48; err =  0; data: >71>00>16>2C>42>58>6E
+bmx160: transaction 49; err =  0; data: >F1<00<16<2C<42<58<6E
+bmx160: transaction 50; err =  0; data: >71>00>17>2E>45>5C>73
+bmx160: transaction 51; err =  0; data: >F1<00<17<2E<45<5C<73
+bmx160: transaction 52; err =  0; data: >71>00>18>30>48>60>78
+bmx160: transaction 53; err =  0; data: >F1<00<18<30<48<60<78
+bmx160: transaction 54; err =  0; data: >71>00>19>32>4B>64>7D
+bmx160: transaction 55; err =  0; data: >F1<00<19<32<4B<64<7D
+bmx160: transaction 56; err =  0; data: >71>00>1A>34>4E>68>82
+bmx160: transaction 57; err =  0; data: >F1<00<1A<34<4E<68<82
+bmx160: transaction 58; err =  0; data: >71>00>1B>36>51>6C>87
+bmx160: transaction 59; err =  0; data: >F1<00<1B<36<51<6C<87
+bmx160: transaction 60; err =  0; data: >71>00>1C>38>54>70>8C
+bmx160: transaction 61; err =  0; data: >F1<00<1C<38<54<70<8C
+bmx160: transaction 62; err =  0; data: >71>00>1D>3A>57>74>91
+bmx160: transaction 63; err =  0; data: >F1<00<1D<3A<57<74<91
+bmx160: transaction 64; err =  0; data: >71>00>1E>3C>5A>78>96
+bmx160: transaction 65; err =  0; data: >F1<00<1E<3C<5A<78<96
+bmx160: transaction 66; err =  0; data: >71>00>1F>3E>5D>7C>9B
+bmx160: transaction 67; err =  0; data: >F1<00<1F<3E<5D<7C<9B
+============= results ==========
+- total tests ok:        33
+- total tests ok (data): 33
+- total tests error:     0
+- status:                OK
+================================================================
+
+=========================== Test SPI ===========================
+Target freq: 12500000
+API type: synchronous
+======== initialization ========
+bmx160: target SPI frequency: 12500000 Hz; actual SPI frequency: 12500000 Hz
+bmx160: SPI API type: synchronous
+bmx160: transaction  0; err =  0; data: >7E>B6
+bmx160: transaction  1; err =  0; data: >6B>01
+bmx160: transaction  2; err =  0; data: >7E>11
+============= test 1 ===========
+bmx160: transaction  3; err =  0; data: >80<D8
+============= test 2 ===========
+bmx160: transaction  4; err =  0; data: >71>00>00>00>00>00>00
+bmx160: transaction  5; err =  0; data: >F1<00<00<00<00<00<00
+bmx160: transaction  6; err =  0; data: >71>00>01>02>03>04>05
+bmx160: transaction  7; err =  0; data: >F1<00<01<02<03<04<05
+bmx160: transaction  8; err =  0; data: >71>00>02>04>06>08>0A
+bmx160: transaction  9; err =  0; data: >F1<00<02<04<06<08<0A
+bmx160: transaction 10; err =  0; data: >71>00>03>06>09>0C>0F
+bmx160: transaction 11; err =  0; data: >F1<00<03<06<09<0C<0F
+bmx160: transaction 12; err =  0; data: >71>00>04>08>0C>10>14
+bmx160: transaction 13; err =  0; data: >F1<00<04<08<0C<10<14
+bmx160: transaction 14; err =  0; data: >71>00>05>0A>0F>14>19
+bmx160: transaction 15; err =  0; data: >F1<00<05<0A<0F<14<19
+bmx160: transaction 16; err =  0; data: >71>00>06>0C>12>18>1E
+bmx160: transaction 17; err =  0; data: >F1<00<06<0C<12<18<1E
+bmx160: transaction 18; err =  0; data: >71>00>07>0E>15>1C>23
+bmx160: transaction 19; err =  0; data: >F1<00<07<0E<15<1C<23
+bmx160: transaction 20; err =  0; data: >71>00>08>10>18>20>28
+bmx160: transaction 21; err =  0; data: >F1<00<08<10<18<20<28
+bmx160: transaction 22; err =  0; data: >71>00>09>12>1B>24>2D
+bmx160: transaction 23; err =  0; data: >F1<00<09<12<1B<24<2D
+bmx160: transaction 24; err =  0; data: >71>00>0A>14>1E>28>32
+bmx160: transaction 25; err =  0; data: >F1<00<0A<14<1E<28<32
+bmx160: transaction 26; err =  0; data: >71>00>0B>16>21>2C>37
+bmx160: transaction 27; err =  0; data: >F1<00<0B<16<21<2C<37
+bmx160: transaction 28; err =  0; data: >71>00>0C>18>24>30>3C
+bmx160: transaction 29; err =  0; data: >F1<00<0C<18<24<30<3C
+bmx160: transaction 30; err =  0; data: >71>00>0D>1A>27>34>41
+bmx160: transaction 31; err =  0; data: >F1<00<0D<1A<27<34<41
+bmx160: transaction 32; err =  0; data: >71>00>0E>1C>2A>38>46
+bmx160: transaction 33; err =  0; data: >F1<00<0E<1C<2A<38<46
+bmx160: transaction 34; err =  0; data: >71>00>0F>1E>2D>3C>4B
+bmx160: transaction 35; err =  0; data: >F1<00<0F<1E<2D<3C<4B
+bmx160: transaction 36; err =  0; data: >71>00>10>20>30>40>50
+bmx160: transaction 37; err =  0; data: >F1<00<10<20<30<40<50
+bmx160: transaction 38; err =  0; data: >71>00>11>22>33>44>55
+bmx160: transaction 39; err =  0; data: >F1<00<11<22<33<44<55
+bmx160: transaction 40; err =  0; data: >71>00>12>24>36>48>5A
+bmx160: transaction 41; err =  0; data: >F1<00<12<24<36<48<5A
+bmx160: transaction 42; err =  0; data: >71>00>13>26>39>4C>5F
+bmx160: transaction 43; err =  0; data: >F1<00<13<26<39<4C<5F
+bmx160: transaction 44; err =  0; data: >71>00>14>28>3C>50>64
+bmx160: transaction 45; err =  0; data: >F1<00<14<28<3C<50<64
+bmx160: transaction 46; err =  0; data: >71>00>15>2A>3F>54>69
+bmx160: transaction 47; err =  0; data: >F1<00<15<2A<3F<54<69
+bmx160: transaction 48; err =  0; data: >71>00>16>2C>42>58>6E
+bmx160: transaction 49; err =  0; data: >F1<00<16<2C<42<58<6E
+bmx160: transaction 50; err =  0; data: >71>00>17>2E>45>5C>73
+bmx160: transaction 51; err =  0; data: >F1<00<17<2E<45<5C<73
+bmx160: transaction 52; err =  0; data: >71>00>18>30>48>60>78
+bmx160: transaction 53; err =  0; data: >F1<00<18<30<48<60<78
+bmx160: transaction 54; err =  0; data: >71>00>19>32>4B>64>7D
+bmx160: transaction 55; err =  0; data: >F1<00<19<32<4B<64<7D
+bmx160: transaction 56; err =  0; data: >71>00>1A>34>4E>68>82
+bmx160: transaction 57; err =  0; data: >F1<00<1A<34<4E<68<82
+bmx160: transaction 58; err =  0; data: >71>00>1B>36>51>6C>87
+bmx160: transaction 59; err =  0; data: >F1<00<1B<36<51<6C<87
+bmx160: transaction 60; err =  0; data: >71>00>1C>38>54>70>8C
+bmx160: transaction 61; err =  0; data: >F1<00<1C<38<54<70<8C
+bmx160: transaction 62; err =  0; data: >71>00>1D>3A>57>74>91
+bmx160: transaction 63; err =  0; data: >F1<00<1D<3A<57<74<91
+bmx160: transaction 64; err =  0; data: >71>00>1E>3C>5A>78>96
+bmx160: transaction 65; err =  0; data: >F1<00<1E<3C<5A<78<96
+bmx160: transaction 66; err =  0; data: >71>00>1F>3E>5D>7C>9B
+bmx160: transaction 67; err =  0; data: >F1<00<1F<3E<5D<7C<9B
+============= results ==========
+- total tests ok:        33
+- total tests ok (data): 33
+- total tests error:     0
+- status:                OK
+================================================================
+
+=========================== Test SPI ===========================
+Target freq: 200000
+API type: asynchronous
+======== initialization ========
+bmx160: target SPI frequency: 200000 Hz; actual SPI frequency: 390625 Hz
+bmx160: SPI API type: asynchronous
+bmx160: transaction  0; err =  0; data: >7E>B6
+bmx160: transaction  1; err =  0; data: >6B>01
+bmx160: transaction  2; err =  0; data: >7E>11
+============= test 1 ===========
+bmx160: transaction  3; err =  0; data: >80<D8
+ERROR: expect to get 16 clock ticks, but got 24 ticks
+============= test 2 ===========
+bmx160: transaction  4; err =  0; data: >71>00>00>00>00>00>00
+bmx160: transaction  5; err =  0; data: >F1<00<00<00<00<00<00
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction  6; err =  0; data: >71>00>01>02>03>04>05
+bmx160: transaction  7; err =  0; data: >F1<00<01<02<03<04<05
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction  8; err =  0; data: >71>00>02>04>06>08>0A
+bmx160: transaction  9; err =  0; data: >F1<00<02<04<06<08<0A
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 10; err =  0; data: >71>00>03>06>09>0C>0F
+bmx160: transaction 11; err =  0; data: >F1<00<03<06<09<0C<0F
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 12; err =  0; data: >71>00>04>08>0C>10>14
+bmx160: transaction 13; err =  0; data: >F1<00<04<08<0C<10<14
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 14; err =  0; data: >71>00>05>0A>0F>14>19
+bmx160: transaction 15; err =  0; data: >F1<00<05<0A<0F<14<19
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 16; err =  0; data: >71>00>06>0C>12>18>1E
+bmx160: transaction 17; err =  0; data: >F1<00<06<0C<12<18<1E
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 18; err =  0; data: >71>00>07>0E>15>1C>23
+bmx160: transaction 19; err =  0; data: >F1<00<07<0E<15<1C<23
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 20; err =  0; data: >71>00>08>10>18>20>28
+bmx160: transaction 21; err =  0; data: >F1<00<08<10<18<20<28
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 22; err =  0; data: >71>00>09>12>1B>24>2D
+bmx160: transaction 23; err =  0; data: >F1<00<09<12<1B<24<2D
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 24; err =  0; data: >71>00>0A>14>1E>28>32
+bmx160: transaction 25; err =  0; data: >F1<00<0A<14<1E<28<32
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 26; err =  0; data: >71>00>0B>16>21>2C>37
+bmx160: transaction 27; err =  0; data: >F1<00<0B<16<21<2C<37
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 28; err =  0; data: >71>00>0C>18>24>30>3C
+bmx160: transaction 29; err =  0; data: >F1<00<0C<18<24<30<3C
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 30; err =  0; data: >71>00>0D>1A>27>34>41
+bmx160: transaction 31; err =  0; data: >F1<00<0D<1A<27<34<41
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 32; err =  0; data: >71>00>0E>1C>2A>38>46
+bmx160: transaction 33; err =  0; data: >F1<00<0E<1C<2A<38<46
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 34; err =  0; data: >71>00>0F>1E>2D>3C>4B
+bmx160: transaction 35; err =  0; data: >F1<00<0F<1E<2D<3C<4B
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 36; err =  0; data: >71>00>10>20>30>40>50
+bmx160: transaction 37; err =  0; data: >F1<00<10<20<30<40<50
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 38; err =  0; data: >71>00>11>22>33>44>55
+bmx160: transaction 39; err =  0; data: >F1<00<11<22<33<44<55
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 40; err =  0; data: >71>00>12>24>36>48>5A
+bmx160: transaction 41; err =  0; data: >F1<00<12<24<36<48<5A
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 42; err =  0; data: >71>00>13>26>39>4C>5F
+bmx160: transaction 43; err =  0; data: >F1<00<13<26<39<4C<5F
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 44; err =  0; data: >71>00>14>28>3C>50>64
+bmx160: transaction 45; err =  0; data: >F1<00<14<28<3C<50<64
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 46; err =  0; data: >71>00>15>2A>3F>54>69
+bmx160: transaction 47; err =  0; data: >F1<00<15<2A<3F<54<69
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 48; err =  0; data: >71>00>16>2C>42>58>6E
+bmx160: transaction 49; err =  0; data: >F1<00<16<2C<42<58<6E
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 50; err =  0; data: >71>00>17>2E>45>5C>73
+bmx160: transaction 51; err =  0; data: >F1<00<17<2E<45<5C<73
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 52; err =  0; data: >71>00>18>30>48>60>78
+bmx160: transaction 53; err =  0; data: >F1<00<18<30<48<60<78
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 54; err =  0; data: >71>00>19>32>4B>64>7D
+bmx160: transaction 55; err =  0; data: >F1<00<19<32<4B<64<7D
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 56; err =  0; data: >71>00>1A>34>4E>68>82
+bmx160: transaction 57; err =  0; data: >F1<00<1A<34<4E<68<82
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 58; err =  0; data: >71>00>1B>36>51>6C>87
+bmx160: transaction 59; err =  0; data: >F1<00<1B<36<51<6C<87
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 60; err =  0; data: >71>00>1C>38>54>70>8C
+bmx160: transaction 61; err =  0; data: >F1<00<1C<38<54<70<8C
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 62; err =  0; data: >71>00>1D>3A>57>74>91
+bmx160: transaction 63; err =  0; data: >F1<00<1D<3A<57<74<91
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 64; err =  0; data: >71>00>1E>3C>5A>78>96
+bmx160: transaction 65; err =  0; data: >F1<00<1E<3C<5A<78<96
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 66; err =  0; data: >71>00>1F>3E>5D>7C>9B
+bmx160: transaction 67; err =  0; data: >F1<00<1F<3E<5D<7C<9B
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+============= results ==========
+- total tests ok:        0
+- total tests ok (data): 33
+- total tests error:     33
+- status:                ERROR
+================================================================
+
+=========================== Test SPI ===========================
+Target freq: 1000000
+API type: asynchronous
+======== initialization ========
+bmx160: target SPI frequency: 1000000 Hz; actual SPI frequency: 781250 Hz
+bmx160: SPI API type: asynchronous
+bmx160: transaction  0; err =  0; data: >7E>B6
+bmx160: transaction  1; err =  0; data: >6B>01
+bmx160: transaction  2; err =  0; data: >7E>11
+============= test 1 ===========
+bmx160: transaction  3; err =  0; data: >80<D8
+ERROR: expect to get 16 clock ticks, but got 24 ticks
+============= test 2 ===========
+bmx160: transaction  4; err =  0; data: >71>00>00>00>00>00>00
+bmx160: transaction  5; err =  0; data: >F1<00<00<00<00<00<00
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction  6; err =  0; data: >71>00>01>02>03>04>05
+bmx160: transaction  7; err =  0; data: >F1<00<01<02<03<04<05
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction  8; err =  0; data: >71>00>02>04>06>08>0A
+bmx160: transaction  9; err =  0; data: >F1<00<02<04<06<08<0A
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 10; err =  0; data: >71>00>03>06>09>0C>0F
+bmx160: transaction 11; err =  0; data: >F1<00<03<06<09<0C<0F
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 12; err =  0; data: >71>00>04>08>0C>10>14
+bmx160: transaction 13; err =  0; data: >F1<00<04<08<0C<10<14
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 14; err =  0; data: >71>00>05>0A>0F>14>19
+bmx160: transaction 15; err =  0; data: >F1<00<05<0A<0F<14<19
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 16; err =  0; data: >71>00>06>0C>12>18>1E
+bmx160: transaction 17; err =  0; data: >F1<00<06<0C<12<18<1E
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 18; err =  0; data: >71>00>07>0E>15>1C>23
+bmx160: transaction 19; err =  0; data: >F1<00<07<0E<15<1C<23
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 20; err =  0; data: >71>00>08>10>18>20>28
+bmx160: transaction 21; err =  0; data: >F1<00<08<10<18<20<28
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 22; err =  0; data: >71>00>09>12>1B>24>2D
+bmx160: transaction 23; err =  0; data: >F1<00<09<12<1B<24<2D
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 24; err =  0; data: >71>00>0A>14>1E>28>32
+bmx160: transaction 25; err =  0; data: >F1<00<0A<14<1E<28<32
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 26; err =  0; data: >71>00>0B>16>21>2C>37
+bmx160: transaction 27; err =  0; data: >F1<00<0B<16<21<2C<37
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 28; err =  0; data: >71>00>0C>18>24>30>3C
+bmx160: transaction 29; err =  0; data: >F1<00<0C<18<24<30<3C
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 30; err =  0; data: >71>00>0D>1A>27>34>41
+bmx160: transaction 31; err =  0; data: >F1<00<0D<1A<27<34<41
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 32; err =  0; data: >71>00>0E>1C>2A>38>46
+bmx160: transaction 33; err =  0; data: >F1<00<0E<1C<2A<38<46
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 34; err =  0; data: >71>00>0F>1E>2D>3C>4B
+bmx160: transaction 35; err =  0; data: >F1<00<0F<1E<2D<3C<4B
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 36; err =  0; data: >71>00>10>20>30>40>50
+bmx160: transaction 37; err =  0; data: >F1<00<10<20<30<40<50
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 38; err =  0; data: >71>00>11>22>33>44>55
+bmx160: transaction 39; err =  0; data: >F1<00<11<22<33<44<55
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 40; err =  0; data: >71>00>12>24>36>48>5A
+bmx160: transaction 41; err =  0; data: >F1<00<12<24<36<48<5A
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 42; err =  0; data: >71>00>13>26>39>4C>5F
+bmx160: transaction 43; err =  0; data: >F1<00<13<26<39<4C<5F
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 44; err =  0; data: >71>00>14>28>3C>50>64
+bmx160: transaction 45; err =  0; data: >F1<00<14<28<3C<50<64
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 46; err =  0; data: >71>00>15>2A>3F>54>69
+bmx160: transaction 47; err =  0; data: >F1<00<15<2A<3F<54<69
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 48; err =  0; data: >71>00>16>2C>42>58>6E
+bmx160: transaction 49; err =  0; data: >F1<00<16<2C<42<58<6E
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 50; err =  0; data: >71>00>17>2E>45>5C>73
+bmx160: transaction 51; err =  0; data: >F1<00<17<2E<45<5C<73
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 52; err =  0; data: >71>00>18>30>48>60>78
+bmx160: transaction 53; err =  0; data: >F1<00<18<30<48<60<78
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 54; err =  0; data: >71>00>19>32>4B>64>7D
+bmx160: transaction 55; err =  0; data: >F1<00<19<32<4B<64<7D
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 56; err =  0; data: >71>00>1A>34>4E>68>82
+bmx160: transaction 57; err =  0; data: >F1<00<1A<34<4E<68<82
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 58; err =  0; data: >71>00>1B>36>51>6C>87
+bmx160: transaction 59; err =  0; data: >F1<00<1B<36<51<6C<87
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 60; err =  0; data: >71>00>1C>38>54>70>8C
+bmx160: transaction 61; err =  0; data: >F1<00<1C<38<54<70<8C
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 62; err =  0; data: >71>00>1D>3A>57>74>91
+bmx160: transaction 63; err =  0; data: >F1<00<1D<3A<57<74<91
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 64; err =  0; data: >71>00>1E>3C>5A>78>96
+bmx160: transaction 65; err =  0; data: >F1<00<1E<3C<5A<78<96
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+bmx160: transaction 66; err =  0; data: >71>00>1F>3E>5D>7C>9B
+bmx160: transaction 67; err =  0; data: >F1<00<1F<3E<5D<7C<9B
+ERROR: expect to get 112 clock ticks, but got 120 ticks
+============= results ==========
+- total tests ok:        0
+- total tests ok (data): 33
+- total tests error:     33
+- status:                ERROR
+================================================================
+
+=========================== Test SPI ===========================
+Target freq: 12500000
+API type: asynchronous
+======== initialization ========
+bmx160: target SPI frequency: 12500000 Hz; actual SPI frequency: 12500000 Hz
+bmx160: SPI API type: asynchronous
+bmx160: transaction  0; err =  0; data: >7E>B6
+bmx160: transaction  1; err =  0; data: >6B>01
+bmx160: transaction  2; err =  0; data: >7E>11
+============= test 1 ===========
+bmx160: transaction  3; err = -1; data: >80<FF
+ERROR: expect to get 16 clock ticks, but got 7618 ticks
+ERROR: invalid chip id: 0xFF
+============= test 2 ===========
+bmx160: transaction  4; err = -1; data: >71>00>00>00>00>00>00
+bmx160: transaction  5; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10454 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0xFFFFFFFFFFFF
+bmx160: transaction  6; err = -1; data: >71>00>01>02>03>04>05
+bmx160: transaction  7; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10506 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x010101010101
+ERROR: in data: 0xFFFFFFFFFFFF
+bmx160: transaction  8; err = -1; data: >71>00>02>04>06>08>0A
+bmx160: transaction  9; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10457 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x040404040404
+ERROR: in data: 0xFFFFFFFFFFFF
+bmx160: transaction 10; err = -1; data: >71>00>03>06>09>0C>0F
+bmx160: transaction 11; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10477 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x090909090909
+ERROR: in data: 0xFFFFFFFFFFFF
+bmx160: transaction 12; err = -1; data: >71>00>04>08>0C>10>14
+bmx160: transaction 13; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10479 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x101010101010
+ERROR: in data: 0xFFFFFFFFFFFF
+bmx160: transaction 14; err = -1; data: >71>00>05>0A>0F>14>19
+bmx160: transaction 15; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10486 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x191919191919
+ERROR: in data: 0xFFFFFFFFFFFF
+bmx160: transaction 16; err = -1; data: >71>00>06>0C>12>18>1E
+bmx160: transaction 17; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10480 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x000000000000
+bmx160: transaction 18; err = -1; data: >71>00>07>0E>15>1C>23
+bmx160: transaction 19; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10480 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0xFFFFFFFFFFFF
+ERROR: in data: 0x000000000000
+bmx160: transaction 20; err = -1; data: >71>00>08>10>18>20>28
+bmx160: transaction 21; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10484 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x000000000000
+bmx160: transaction 22; err = -1; data: >71>00>09>12>1B>24>2D
+bmx160: transaction 23; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10481 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x090909090909
+bmx160: transaction 24; err = -1; data: >71>00>0A>14>1E>28>32
+bmx160: transaction 25; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10479 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x141414141414
+bmx160: transaction 26; err = -1; data: >71>00>0B>16>21>2C>37
+bmx160: transaction 27; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10519 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x212121212121
+bmx160: transaction 28; err = -1; data: >71>00>0C>18>24>30>3C
+bmx160: transaction 29; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10479 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x303030303030
+bmx160: transaction 30; err = -1; data: >71>00>0D>1A>27>34>41
+bmx160: transaction 31; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10480 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x414141414141
+bmx160: transaction 32; err = -1; data: >71>00>0E>1C>2A>38>46
+bmx160: transaction 33; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10505 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x000000000000
+bmx160: transaction 34; err = -1; data: >71>00>0F>1E>2D>3C>4B
+bmx160: transaction 35; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10476 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x404040404040
+ERROR: in data: 0xFFFFFFFFFFFF
+bmx160: transaction 36; err = -1; data: >71>00>10>20>30>40>50
+bmx160: transaction 37; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10482 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0xCCCCCCCCCCCC
+ERROR: in data: 0x000000000000
+bmx160: transaction 38; err = -1; data: >71>00>11>22>33>44>55
+bmx160: transaction 39; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10532 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0xBABABABABABA
+ERROR: in data: 0x000000000000
+bmx160: transaction 40; err = -1; data: >71>00>12>24>36>48>5A
+bmx160: transaction 41; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10478 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x000000000000
+bmx160: transaction 42; err = -1; data: >71>00>13>26>39>4C>5F
+bmx160: transaction 43; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10484 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x080808080808
+ERROR: in data: 0x000000000000
+bmx160: transaction 44; err = -1; data: >71>00>14>28>3C>50>64
+bmx160: transaction 45; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10477 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x5C5C5C5C5C5C
+ERROR: in data: 0x000000000000
+bmx160: transaction 46; err = -1; data: >71>00>15>2A>3F>54>69
+bmx160: transaction 47; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10486 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x151515151515
+ERROR: in data: 0x000000000000
+bmx160: transaction 48; err = -1; data: >71>00>16>2C>42>58>6E
+bmx160: transaction 49; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10480 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x000000000000
+bmx160: transaction 50; err = -1; data: >71>00>17>2E>45>5C>73
+bmx160: transaction 51; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10480 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x202020202020
+ERROR: in data: 0x404040404040
+bmx160: transaction 52; err = -1; data: >71>00>18>30>48>60>78
+bmx160: transaction 53; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10486 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0xDBDBDBDBDBDB
+ERROR: in data: 0xCCCCCCCCCCCC
+bmx160: transaction 54; err = -1; data: >71>00>19>32>4B>64>7D
+bmx160: transaction 55; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10478 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x353535353535
+ERROR: in data: 0xBABABABABABA
+bmx160: transaction 56; err = -1; data: >71>00>1A>34>4E>68>82
+bmx160: transaction 57; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10479 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x000000000000
+bmx160: transaction 58; err = -1; data: >71>00>1B>36>51>6C>87
+bmx160: transaction 59; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10516 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x080808080808
+ERROR: in data: 0x080808080808
+bmx160: transaction 60; err = -1; data: >71>00>1C>38>54>70>8C
+bmx160: transaction 61; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10478 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x747474747474
+ERROR: in data: 0x5C5C5C5C5C5C
+bmx160: transaction 62; err = -1; data: >71>00>1D>3A>57>74>91
+bmx160: transaction 63; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10483 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x2B2B2B2B2B2B
+ERROR: in data: 0x151515151515
+bmx160: transaction 64; err = -1; data: >71>00>1E>3C>5A>78>96
+bmx160: transaction 65; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10522 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x000000000000
+ERROR: in data: 0x000000000000
+bmx160: transaction 66; err = -1; data: >71>00>1F>3E>5D>7C>9B
+bmx160: transaction 67; err = -1; data: >F1<FF<FF<FF<FF<FF<FF
+ERROR: expect to get 112 clock ticks, but got 10478 ticks
+ERROR: read/write operation failed.
+ERROR: Invalid read/write operation.
+ERROR: out data: 0x202020202020
+ERROR: in data: 0x202020202020
+============= results ==========
+- total tests ok:        0
+- total tests ok (data): 0
+- total tests error:     33
+- status:                ERROR
+================================================================
+
+================== Blink demo ===================
