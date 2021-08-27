@@ -253,15 +253,15 @@ elif [[ "$APP_MBED_CLI" == "2" ]]; then
         ""
     )
 
-    #    APP_MBED_CLI_2_CMAKELISTS_LINES+=(
-    #        "string(TOLOWER \${CMAKE_BUILD_TYPE} APP_LOWERCASE_BUILD_TYPE)"
-    #        "if(APP_LOWERCASE_BUILD_TYPE STREQUAL \"debug\")"
-    #        "    # set extra debug options"
-    #        "    list(APPEND profile_debug_options \"-O0\" \"-Werror=return-type\")"
-    #        "    target_compile_options(mbed-core INTERFACE $<$<COMPILE_LANGUAGE:C>:\${profile_debug_options}>)"
-    #        "    target_compile_options(mbed-core INTERFACE $<$<COMPILE_LANGUAGE:CXX>:\${profile_debug_options}>)"
-    #        "endif()"
-    #    )
+    APP_MBED_CLI_2_CMAKELISTS_LINES+=(
+        "string(TOLOWER \${CMAKE_BUILD_TYPE} APP_LOWERCASE_BUILD_TYPE)"
+        "if(APP_LOWERCASE_BUILD_TYPE STREQUAL \"debug\")"
+        "    # set extra debug options"
+        "    list(APPEND profile_debug_options \"-O0\" \"-Werror=return-type\")"
+        "    target_compile_options(mbed-core INTERFACE $<$<COMPILE_LANGUAGE:C>:\${profile_debug_options}>)"
+        "    target_compile_options(mbed-core INTERFACE $<$<COMPILE_LANGUAGE:CXX>:\${profile_debug_options}>)"
+        "endif()"
+    )
     APP_MBED_CLI_2_CMAKELISTS_LINES+=(
         "# custom targets/libraries"
     )
@@ -273,13 +273,13 @@ elif [[ "$APP_MBED_CLI" == "2" ]]; then
             exit 1
         fi
         if [[ "$lib_name" == "TARGET_${APP_TARGET}" ]]; then
-            cmake_lib_name="mbed-$(tr '[A-Z_]' '[a-z-]' <<<"$APP_TARGET")"
+            cmake_lib_name="mbed-$(tr 'A-Z_' 'a-z-' <<<"$APP_TARGET")"
         else
             cmake_lib_name=$(jq --raw-output '.name' "$lib_file_info")
             if [[ "$cmake_lib_name" == "null" ]]; then
                 cmake_lib_name="$lib_name"
             fi
-            cmake_lib_name="mbed-$(tr '[A-Z_]' '[a-z-]' <<<"$cmake_lib_name")"
+            cmake_lib_name="$(tr 'A-Z_' 'a-z-' <<<"$cmake_lib_name")"
         fi
         APP_MBED_CLI_2_CMAKELISTS_LINES+=("target_link_libraries(\${APP_TARGET} ${cmake_lib_name})")
     done
@@ -300,8 +300,21 @@ elif [[ "$APP_MBED_CLI" == "2" ]]; then
     if [[ -n "$APP_CUSTOM_TARGET_PATH" ]]; then
         export_command+=("--custom-targets-json" "$APP_CUSTOM_TARGET_PATH")
     fi
+    # save root `.mbedignore` content
+    mbed_ignore_path="$PROJECT_DIR/.mbedignore"
+    mbed_ignore_content=""
+    if [[ -f "$mbed_ignore_path" ]]; then
+       mbed_ignore_content="$(cat "$mbed_ignore_path")"
+    fi
+    # run mbed-tools command
     log_info "Run command: ${export_command[*]}"
     "${export_command[@]}"
+    # restore initial state of `.mbedignore` root file
+    if [[ -n "$mbed_ignore_path" ]]; then
+      echo "$mbed_ignore_content" > "$mbed_ignore_path"
+    else
+      rm "$mbed_ignore_path"
+    fi
 
 else
     log_error "Unknown Mbed CLI: $APP_MBED_CLI"
