@@ -43,3 +43,4 @@ cube_path.json
 # temporary files
 /tmp*
 .gdbinit
+/*_logs.txt

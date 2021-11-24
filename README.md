@@ -18,8 +18,8 @@ where:
 - `BMX160_SPI_MOSI` - SPI master out, slave in pin;
 - `BMX160_SPI_SCK` - SPI clock pin;
 - `BMX160_SPI_CSB` - SPI chip select pin.
-- `BMX160_SPI_CLK_COUNTER` - any PWM non-inverted pin of channel 1/2 of general purpose timer. It uses STM32 timer
-  encoder feature to count SPI clock ticks.
+- `BMX160_SPI_CLK_COUNTER` - any STM32 TIM ETR input pint. It used to check SPI clock cycles and should be connected
+  to `BMX160_SPI_SCK` pin.
 
 ## Project preparation
 
@@ -33,22 +33,6 @@ where:
 
 ## Test results
 
-The demo project performs minimal sensor configuration for SPI 3-wire mode usage and run 2 simple test with different
-frequencies and synchronous/asynchronous SPI API usage:
-
-1. Test 1 - read chip ID (sensor should return `D8`)
-2. Test 2 - write 6 bytes to device registers and then read them to test burst write/read. The "offset" bmx160 registers
-   are used as sensor don't use then by default. This test is repeated many times to check SPI stability.
-
-The test code log each transaction with the following format:
-
-```
-bmx160: transaction  9; err =  0; data: >F1<00<02<04<06<08<0A
-```
-
-where `err` shows any error that are returned by SPI API, `data` show transmitted bytes in hexadecimal format and
-direction prefix (`>` - means that byte is send from MCU to sensor, `<` means that byte is send from sensor to MCU).
-
-Additionally, code uses `BMX160_SPI_CLK_COUNTER` pin to count real number of SPI clock ticks and detect dummy reads.
-
-If any error occurs, corresponding message is printed.
+The demo project performs minimal sensor configuration for SPI 3-wire mode usage and run tests that repeatedly send and
+read data from "free" sensor registers (the send/received data should be the same if spi works correctly). The test
+details can be found in `main.cpp` docstrings.

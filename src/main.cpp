@@ -5,79 +5,59 @@
  *
  * The demo runs multiple times 3-Wire SPI test with different parameters and print result table.
  *
- * Single test includes the following steps:
- * 1. SPI object creation
+ * The test cases are defined by test_configurations.
+ *
+ * Single test case includes the following steps:
+ * 1. SPI object creation and configuration
  * 2. minimal BMX160 configuration (some commands should be send via SPI)
- * 3. single byte read/write test. It includes the following steps, that are repeated 64 times:
+ * 3. Repeating writing and reading of data (64 times):
  *    1. start transaction (CS = 0)
- *    2. send register address (1 byte)
- *    3. send value (1 byte)
+ *    2. send register address (1 byte, 8-bit mode)
+ *    3. send value (one or more words in 8 or 16 bit modes (up to 6 bytes))
  *    4. finish transaction (CS = 1)
  *    5. start transaction (CS = 0)
  *    6. send register address with read bit flag (1 byte)
- *    7. receive value (1 byte)
+ *    7. receive value (one or more words in 8 or 16 bit modes (up to 6 bytes))
  *    8. finish transaction (CS = 1)
  *    9. do the following checks:
  *       - check that sent and received values are same
  *       - check that SPI method calls don't return errors
  *       - check the SPI generated 32 clock cycles
- * 4. burst read/write test. It includes the following steps, that are repeated 64 times:
- *    1. start transaction (CS = 0)
- *    2. send register address (1 byte)
- *    3. send value (6 bytes)
- *    4. finish transaction (CS = 1)
- *    5. start transaction (CS = 0)
- *    6. send register address with read bit flag (1 byte)
- *    7. receive value (6 bytes)
- *    8. finish transaction (CS = 1)
- *    9. do the following checks:
- *       - check that sent and received values are same
- *       - check that SPI method calls don't return errors
- *       - check the SPI generated 112 clock cycles
- * 5. destroy SPI object
+ * 4. destroy SPI object
  *
  * Test parameters:
  * - target SPI frequency
  * - API type:
- *   - "synchronous" - SPI::write methods are used for communication
- *   - "asynchronous" - SPI::transfer method is used for communication
+ *   - API_USAGE_SYNC - SPI::write methods are used for communication
+ *   - API_USAGE_ASYNC - SPI::transfer method is used for communication
+ * - test case type:
+ *   - SINGLE_8W_8R - write 1 8-bit word and read 1 8-bit word
+ *   - BURST_8W_8R -  write 6 8-bit words and read 6 8-bit words
+ *   - SINGLE_16W_8R - write 1 16-bit word and read 2 8-bit words
+ *   - BURST_16W_8R - write 3 16-bit words and read 6 8-bit words
+ *   - SINGLE_8W_16R - write 2 8-bit words and read 1 16-bit word
+ *   - BURST_8W_16R - write 6 8-bit words and read 2 16-bit words
+ *   note: mixed 8/16-bit operations are used to check that bytes are swapped in the 16-bit mode.
  *
  * Result table has the following columns with information about each test:
- * 1. "target SPI frequency" - SPI frequency that is set with SPI::frequency method
- * 2. "actual SPI frequency" - actual SPI frequency (it may differ from target one)
- * 3. "API type" - API type:
- *    - "synchronous" - SPI::write methods are used for communication
- *    - "asynchronous" - SPI::transfer method is used for communication
- * 4. "test result". It's "OK" if:
- *    - sensor is initialized without errors
- *    - single byte read/write test finished without errors
- *    - burst read/write test finished without errors
- * 5. "init error" - sensor initialization error
- *    - 0 - any SPI method calls that are used to perform basic BMX160 configuration don't return any error code
- *    - non-zero - some SPI method calls that are used to perform basic BMX160 configuration returns error code
- * 6. "single r/w result" - single byte read/write test result. It's "OK" if:
+ * 1. test number
+ * 2. "api" - test api (async/sync)
+ * 3. "case name" - it correspond test case type (see "Test parameters" above)
+ * 4. "target freq (Hz)" - SPI frequency that is set with SPI::frequency method
+ * 5. "target freq (Hz)" - actual SPI frequency (it may differ from target one)
+ * 6. "init error" - sensor initialization error
+ * 7. "result" - overall test result. It's "success" if:
  *    - SPI api calls don't return any error codes
  *    - sent and received values coincide
  *    - SPI generated correct number of clock cycles
- * 7. "single r/w data error":
- *    - "no" - sent and received values coincide
- *    - "yes" - sent and received values are different
- * 8. "single r/w clock error":
- *    - "no" - SPI generated correct number of clock cycles
- *    - "yes" - SPI generated wrong number of clock cycles
- * 9. "burst r/w result" - burst byte read/write test result. It's "OK" if:
- *    - SPI api calls don't return any error codes
- *    - sent and received values coincide
- *    - SPI generated correct number of clock cycles
- * 10. "burst r/w data error":
- *    - "no" - sent and received values coincide
- *    - "yes" - sent and received values are different
- * 11. "burst r/w clock error":
- *    - "no" - SPI generated correct number of clock cycles
- *    - "yes" - SPI generated wrong number of clock cycles
+ * 8. "data" - it's "success" if received and send data are same (with byte order correction).
+ * 9. "clock" - it's "success" if SPI generated correct number of clock ticks.
  */
 #include <cstdarg>
 #include <cstring>
+#include <utility>
+#include <type_traits>
+#include <chrono>
 
 #include "mbed.h"
 #include "pwmout_api.h"
@@ -96,7 +76,7 @@
 #define BMX160_SPI_SCK PB_3
 // SPI SSEL pin
 #define BMX160_SPI_CSB PB_6
-// SPI CLK counter pint
+// SPI CLK counter pin. It should be connected to SPI CLK pin
 #define BMX160_SPI_CLK_COUNTER PA_0
 
 //----------------------------------------------------------------------------//
@@ -133,10 +113,16 @@ static uint8_t spi_get_baudrate_prescaler_rank(uint32_t value)
     }
 }
 
+/**
+ * Helper SPI extension for STM32.
+ *
+ * It provides method ::get_real_frequency to get actual SPI frequency.
+ */
 class SPIExt : public SPI {
 public:
     SPIExt(PinName mosi, PinName miso, PinName sclk)
-            : SPI(mosi, miso, sclk) {}
+            : SPI(mosi, miso, sclk)
+    {}
 
     /**
      * Get actual SPI frequency;
@@ -367,150 +353,44 @@ public:
 
 };
 
-//----------------------------------------------------------------------------//
-// BMX160 register API
-//----------------------------------------------------------------------------//
-
-enum class BMX160Register : uint8_t {
-    CHIP_ID = 0x00,
-    ERROR_REG = 0x02,
-
-    // power status
-    PMU_STATUS = 0x03,
-
-    // data register
-    DATA_MAG_X_L = 0x04,
-    DATA_MAG_X_H = 0x05,
-    DATA_MAG_Y_L = 0x06,
-    DATA_MAG_Y_H = 0x07,
-    DATA_MAG_Z_L = 0x08,
-    DATA_MAG_Z_H = 0x09,
-    DATA_RHALL_L = 0x0A,
-    DATA_RHALL_H = 0x0B,
-    DATA_GYRO_X_L = 0x0C,
-    DATA_GYRO_X_H = 0x0D,
-    DATA_GYRO_Y_L = 0x0E,
-    DATA_GYRO_Y_H = 0x0F,
-    DATA_GYRO_Z_L = 0x10,
-    DATA_GYRO_Z_H = 0x11,
-    DATA_ACCEL_X_L = 0x12,
-    DATA_ACCEL_X_H = 0x13,
-    DATA_ACCEL_Y_L = 0x14,
-    DATA_ACCEL_Y_H = 0x15,
-    DATA_ACCEL_Z_L = 0x16,
-    DATA_ACCEL_Z_H = 0x17,
-    SENSOR_TIME_0 = 0x18,
-    SENSOR_TIME_1 = 0x19,
-    SENSOR_TIME_2 = 0x1A,
-
-    // status registers
-    STATUS = 0x1B,
-    INT_STATUS_0 = 0x1C,
-    INT_STATUS_1 = 0x1D,
-    INT_STATUS_2 = 0x1E,
-    INT_STATUS_4 = 0x1F,
-
-    // temperature
-    TEMPERATURE_L = 0x20,
-    TEMPERATURE_H = 0x21,
-
-    // FIFO data
-    FIFO_LENGTH_L = 0x22,
-    FIFO_LENGTH_H = 0x22,
-    FIFO_DATA = 0x24,
-
-    // sensor configuration
-    ACCEL_CONFIG = 0x40,
-    ACCEL_RANGE = 0x41,
-    GYRO_CONFIG = 0x42,
-    GYRO_RANGE = 0x43,
-    MAGN_CONFIG = 0x44,
-
-    // fifo configuration
-    FIFO_DOWN = 0x45,
-    FIFO_CONFIG_0 = 0x46,
-    FIFO_CONFIG_1 = 0x47,
-
-    // manual magnetometer access registers
-    MAG_IF_0 = 0x4C,
-    MAG_IF_1 = 0x4D,
-    MAG_IF_2 = 0x4E,
-    MAG_IF_3 = 0x4F,
-
-    // interrupt configuration registers
-    INT_EN_0 = 0x50,
-    INT_EN_1 = 0x51,
-    INT_EN_2 = 0x52,
-    INT_OUT_CTRL = 0x53,
-    INT_LATCH = 0x54,
-    INT_MAP_0 = 0x55,
-    INT_MAP_1 = 0x56,
-    INT_MAP_2 = 0x57,
-    INT_DATA_0 = 0x58,
-    INT_DATA_1 = 0x59,
-    INT_LOWHIGH_0 = 0x5A,
-    INT_LOWHIGH_1 = 0x5B,
-    INT_LOWHIGH_2 = 0x5C,
-    INT_LOWHIGH_3 = 0x5D,
-    INT_LOWHIGH_4 = 0x5E,
-    INT_MOTION_0 = 0x5F,
-    INT_MOTION_1 = 0x60,
-    INT_MOTION_2 = 0x61,
-    INT_MOTION_3 = 0x62,
-    INT_TAP_0 = 0x63,
-    INT_TAP_1 = 0x64,
-    INT_ORIENT_0 = 0x65,
-    INT_ORIENT_1 = 0x66,
-    INT_FLAT_0 = 0x67,
-    INT_FLAT_1 = 0x68,
-
-    // configuration registers
-    FOC_CONF = 0x69,
-    CONF = 0x6A,
-    IF_CONF = 0x6B,
-    SELF_TEST = 0x6D,
-    NV_CONF = 0x70,
-
-    // offset compensation registers
-    OFFSET_ACCEL_X = 0x71,
-    OFFSET_ACCEL_Y = 0x72,
-    OFFSET_ACCEL_Z = 0x73,
-    OFFSET_GYRO_X_L = 0x74,
-    OFFSET_GYRO_Y_L = 0x75,
-    OFFSET_GYRO_Z_L = 0x76,
-    OFFSET_CONF = 0x77,
-
-    // step counter
-    STEP_CNT_L = 0x78,
-    STEP_CNT_H = 0x78,
-    STEP_CONFIG_0 = 0x7A,
-    STEP_CONFIG_1 = 0x7B,
-
-    // command register
-    CMD = 0x7E,
-};
 
 /**
  * Helper wrapper around SPI object for communication with BMX160 sensor.
  *
  * It provides the following functionality:
  *
- * - SPI object configuration (mode, frame length and frequency)
+ * - SPI object configuration (mode, frame length)
  * - minimal BMX160 configuration for tests
  * - SPI transaction logging
  * - SPI synchronous/asynchronous API usage selection
  */
-class BMX160SPI3WireAPI : NonCopyable<BMX160SPI3WireAPI> {
+class BMX160SPI3WireAPITester : NonCopyable<BMX160SPI3WireAPITester> {
 public:
+    // Minimal BMX registers that are needed for testing
+    enum class BMX160Register : uint8_t {
+        // interface configuration register
+        IF_CONF = 0x6B,
+        // offset compensation registers
+        // they aren't used by default, so we can use them to store testing data
+        OFFSET_ACCEL_X = 0x71,
+        OFFSET_ACCEL_Y = 0x72,
+        OFFSET_ACCEL_Z = 0x73,
+        OFFSET_GYRO_X_L = 0x74,
+        OFFSET_GYRO_Y_L = 0x75,
+        OFFSET_GYRO_Z_L = 0x76,
+        // command register
+        CMD = 0x7E,
+    };
+
     // SPI interface object and configuration
     static const int _SPI_MODE = 3;
-    SPIExt _spi;
-    int _spi_freq;
-    DigitalOut _spi_ssel;
+    SPI *_spi;
+    DigitalOut *_spi_ssel;
 
     // asynchronous API usage flags
     bool _use_async = false;
     EventFlags _async_operation_complete_flag;
+
 
     // helper logging data
     int _transaction_count = 0;
@@ -572,31 +452,39 @@ public:
 
     }
 
-    int _write_async(const uint8_t *data, int len)
+    int _write_async(const uint8_t *data, int len, int bits)
     {
         _async_operation_complete_flag.clear();
-        _spi.transfer<uint8_t>(data, len, nullptr, 0, callback(this, &BMX160SPI3WireAPI::_notify_flag),
-                               SPI_EVENT_ERROR | SPI_EVENT_COMPLETE);
+        _spi->transfer<uint8_t>(data, len, nullptr, 0, callback(this, &BMX160SPI3WireAPITester::_notify_flag),
+                                SPI_EVENT_ERROR | SPI_EVENT_COMPLETE);
         uint32_t result = _async_operation_complete_flag.wait_any(0x3);
         return result == 0x01 ? 0 : -1;
     }
 
-    int _read_async(uint8_t *data, int len)
+    int _read_async(uint8_t *data, int len, int bits)
     {
         _async_operation_complete_flag.clear();
-        _spi.transfer<uint8_t>(nullptr, 0, data, len, callback(this, &BMX160SPI3WireAPI::_notify_flag),
-                               SPI_EVENT_ERROR | SPI_EVENT_COMPLETE);
+        _spi->transfer<uint8_t>(nullptr, 0, data, len, callback(this, &BMX160SPI3WireAPITester::_notify_flag),
+                                SPI_EVENT_ERROR | SPI_EVENT_COMPLETE);
         uint32_t result = _async_operation_complete_flag.wait_any(0x3);
         return result == 0x01 ? 0 : -1;
     }
 
-    int _write_sync(const uint8_t *data, int len)
+    int _write_sync(const uint8_t *data, int len, int bits)
     {
+        bool single_word = bits / 8 == len;
+
         int err = 0;
-        if (len == 1) {
-            _spi.write(data[0]);
+        if (single_word) {
+            int word;
+            if (bits == 8) {
+                word = *((const uint8_t *)data);
+            } else {
+                word = *((const uint16_t *)data);
+            }
+            _spi->write(word);
         } else {
-            int res = _spi.write((const char *)data, len, nullptr, 0);
+            int res = _spi->write((const char *)data, len, nullptr, 0);
             if (res != len) {
                 err = -1;
             }
@@ -604,16 +492,26 @@ public:
         return err;
     }
 
-    int _read_sync(const uint8_t *data, int len)
+    int _read_sync(uint8_t *data, int len, int bits)
     {
         int err = 0;
 
-        int res = _spi.write(nullptr, 0, (char *)data, len);
+        int res = _spi->write(nullptr, 0, (char *)data, len);
         if (res != len) {
             err = -1;
         }
 
         return err;
+    }
+
+    int _setup_register_write(BMX160Register reg, uint8_t data)
+    {
+        auto reg_addr_cmd = (uint8_t)reg;
+        _spi_ssel->write(0);
+        int err_a = _write_sync(&reg_addr_cmd, 1, 8);
+        int err_d = _write_sync(&data, 1, 8);
+        _spi_ssel->write(1);
+        return err_a == 0 && err_d == 0 ? 0 : -1;
     }
 
 public:
@@ -626,8 +524,8 @@ public:
      * @param ssel SPI SSEL pin
      * @param freq SPI frequency
      */
-    BMX160SPI3WireAPI(PinName mosi, PinName miso, PinName sclk, PinName ssel, int freq = 10'000'00)
-            : _spi(mosi, miso, sclk), _spi_freq(freq), _spi_ssel(ssel, 1)
+    BMX160SPI3WireAPITester(SPI *spi, DigitalOut *ssel)
+            : _spi(spi), _spi_ssel(ssel)
     {
     }
 
@@ -649,14 +547,6 @@ public:
     }
 
     /**
-     * Get actual SPI frequency.
-     */
-    int get_real_spi_frequency()
-    {
-        return _spi.get_real_frequency();
-    }
-
-    /**
      * Perform minimal BMX160 initialization for 3-wire testing.
      */
     int init()
@@ -665,7 +555,7 @@ public:
     }
 
     /**
-     * Reset and initialize BMX160 for for 3-wire testing.
+     * Reset and initialize BMX160 for 3-wire testing.
      */
     int reset()
     {
@@ -673,103 +563,140 @@ public:
         err = 0;
 
         // configure SPI
-        _spi.format(8, _SPI_MODE);
-        _spi.frequency(_spi_freq);
+        _spi->format(8, _SPI_MODE);
 
         // delay to be sure that bmx has started
         ThisThread::sleep_for(20ms);
 
         // create rising edge with SSEL to activate SPI
-        _spi_ssel = 0;
+        _spi_ssel->write(0);
         ThisThread::sleep_for(1ms);
-        _spi_ssel = 1;
+        _spi_ssel->write(1);
         ThisThread::sleep_for(1ms);
 
         // software reset
-        if ((op_err = register_write(BMX160Register::CMD, 0xB6))) {
+        if ((op_err = _setup_register_write(BMX160Register::CMD, 0xB6))) {
             err = op_err;
         }
         ThisThread::sleep_for(20ms);
 
         // create rising edge with SSEL to activate SPI
-        _spi_ssel = 0;
+        _spi_ssel->write(0);
         ThisThread::sleep_for(1ms);
-        _spi_ssel = 1;
+        _spi_ssel->write(1);
+        ThisThread::sleep_for(1ms);
+
+        // enable accelerometer to switch sensor to normal mode
+        if ((op_err = _setup_register_write(BMX160Register::CMD, 0x11))) {
+            err = op_err;
+        }
+
+        // activation delay
         ThisThread::sleep_for(1ms);
 
         // activate SPI 3-wire mode
-        if ((op_err = register_write(BMX160Register::IF_CONF, 0x01))) {
-            err = op_err;
-        }
-
-        // enable accelerometer to switch sensor to normal mode
-        if ((op_err = register_write(BMX160Register::CMD, 0x11))) {
+        if ((op_err = _setup_register_write(BMX160Register::IF_CONF, 0x01))) {
             err = op_err;
         }
 
         return err;
     }
 
-    int register_write(BMX160Register reg, const uint8_t *data, int len)
+    /**
+     * Send data to BMX160.
+     *
+     * Up to 6 bytes can be send. The bytes can be read later with ::read_data method
+     *
+     * @param data data to send
+     * @param len data length (bytes)
+     * @param bits SPI word size
+     * @return 0 on success, otherwise non-zero value
+     */
+    int write_data(const uint8_t *data, int len, int bits = 8)
     {
+        MBED_ASSERT(len <= 6);
+        MBED_ASSERT(bits == 8 || bits == 16);
         int err_a, err_d;
         int err;
 
-        uint8_t reg_addr_cmd = (uint8_t)reg;
-
-        _spi_ssel = 0;
-        if (!_use_async) {
-            err_a = _write_sync(&reg_addr_cmd, 1);
-            err_d = _write_sync(data, len);
+        uint8_t base_reg_cmd = (uint8_t)BMX160Register::OFFSET_ACCEL_X;
+        int (BMX160SPI3WireAPITester::*write_data_impl)(const uint8_t *data, int len, int bits);
+        if (_use_async) {
+            write_data_impl = &BMX160SPI3WireAPITester::_write_async;
         } else {
-            err_a = _write_async(&reg_addr_cmd, 1);
-            err_d = _write_async(data, len);
+            write_data_impl = &BMX160SPI3WireAPITester::_write_sync;
         }
-        _spi_ssel = 1;
 
+        _spi_ssel->write(0);
+        // send address using 8-bit mode
+        err_a = (this->*write_data_impl)(&base_reg_cmd, 1, 8);
+        // select mode for main data transmission
+        if (bits != 8) {
+            _spi->format(bits, _SPI_MODE);
+        }
+        err_d = (this->*write_data_impl)(data, len, bits);
+        _spi_ssel->write(1);
+        if (bits != 8) {
+            // switch back to 8 bit mode
+            _spi->format(8, _SPI_MODE);
+        }
         err = err_a == 0 && err_d == 0 ? 0 : -1;
 
         // log transaction
-        _log_transaction(err, reg_addr_cmd, false, data, len);
+        _log_transaction(err, base_reg_cmd, false, data, len);
         _transaction_count++;
 
         return err;
     }
 
-    int register_write(BMX160Register reg, uint8_t data)
+    /**
+    * Receive data from BMX160.
+    *
+    * Up to 6 bytes can be received. The bytes should be write in advance with ::write_data method.
+    *
+    * @param data data to receive
+    * @param len data length (bytes)
+    * @param bits SPI word size
+    * @return 0 on success, otherwise non-zero value
+    */
+    int read_data(uint8_t *data, int len, int bits = 8)
     {
-        return register_write(reg, &data, 1);
-    }
-
-    int register_read(BMX160Register reg, uint8_t *data, int len)
-    {
+        MBED_ASSERT(len <= 6);
+        MBED_ASSERT(bits == 8 || bits == 16);
         int err_a, err_d;
         int err;
 
-        uint8_t reg_addr_cmd = (uint8_t)reg | 0x80;
-
-        _spi_ssel = 0;
-        if (!_use_async) {
-            err_a = _write_sync(&reg_addr_cmd, 1);
-            err_d = _read_sync(data, len);
+        uint8_t base_reg_cmd = (uint8_t)BMX160Register::OFFSET_ACCEL_X | 0x80;
+        int (BMX160SPI3WireAPITester::*write_data_impl)(const uint8_t *data, int len, int bits);
+        int (BMX160SPI3WireAPITester::*read_data_impl)(uint8_t *data, int len, int bits);
+        if (_use_async) {
+            write_data_impl = &BMX160SPI3WireAPITester::_write_async;
+            read_data_impl = &BMX160SPI3WireAPITester::_read_async;
         } else {
-            err_a = _write_async(&reg_addr_cmd, 1);
-            err_d = _read_async(data, len);
+            write_data_impl = &BMX160SPI3WireAPITester::_write_sync;
+            read_data_impl = &BMX160SPI3WireAPITester::_read_sync;
         }
-        _spi_ssel = 1;
 
+        _spi_ssel->write(0);
+        // send address using 8-bit mode
+        err_a = (this->*write_data_impl)(&base_reg_cmd, 1, 8);
+        // select mode for main data transmission
+        if (bits != 8) {
+            _spi->format(bits, _SPI_MODE);
+        }
+        err_d = (this->*read_data_impl)(data, len, bits);
+        _spi_ssel->write(1);
+        if (bits != 8) {
+            // switch back to 8 bit mode
+            _spi->format(8, _SPI_MODE);
+        }
         err = err_a == 0 && err_d == 0 ? 0 : -1;
 
         // log transaction
-        _log_transaction(err, reg_addr_cmd, true, data, len);
+        _log_transaction(err, base_reg_cmd, true, data, len);
         _transaction_count++;
 
         return err;
-    }
-
-    int register_read(BMX160Register reg, uint8_t *data)
-    {
-        return register_read(reg, data, 1);
     }
 
     /**
@@ -777,45 +704,251 @@ public:
      */
     void call_spi_abort_all_transfers()
     {
-        return _spi.abort_all_transfers();
+        return _spi->abort_all_transfers();
     }
 };
 
 
+//----------------------------------------------------------------------------//
+// Test code and helper functions.
+//----------------------------------------------------------------------------//
+template<typename T>
+class SimpleList {
+private:
+    struct item_t {
+        T value;
+        item_t *next = nullptr;
+
+        template<typename ...Args>
+        explicit item_t(Args &&...args) : value(std::forward<Args>(args)...)
+        {
+        }
+    };
+
+    item_t *_items = nullptr;
+
+    void _append(item_t *elem)
+    {
+        item_t **last_item = &_items;
+        while (*last_item != nullptr) {
+            last_item = &(*last_item)->next;
+        }
+        *last_item = elem;
+    }
+
+public:
+    SimpleList()
+    {
+    }
+
+    ~SimpleList()
+    {
+        item_t *item = _items;
+        while (item != nullptr) {
+            item_t *next_item = item->next;
+            delete item;
+            item = next_item;
+        }
+    }
+
+    template<typename... Args>
+    T *create_and_append(Args &&... args)
+    {
+        auto elem = new item_t(std::forward<Args>(args)...);
+        _append(elem);
+        return &(elem->value);
+    }
+
+    class SimpleListIterator {
+    private:
+        item_t *_item;
+        friend SimpleList;
+
+        SimpleListIterator(item_t *item) : _item(item)
+        {}
+
+    public:
+        SimpleListIterator() : SimpleListIterator(nullptr)
+        {}
+
+        T *next()
+        {
+            item_t *current = _item;
+            if (current) {
+                _item = current->next;
+            }
+            return &(current->value);
+        }
+    };
+
+    SimpleListIterator iterator()
+    {
+        return SimpleListIterator(_items);
+    }
+};
+
+enum TestCaseType {
+    SINGLE_8W_8R = 1 << 0,
+    BURST_8W_8R = 1 << 1,
+    SINGLE_16W_8R = 1 << 2,
+    BURST_16W_8R = 1 << 3,
+    SINGLE_8W_16R = 1 << 4,
+    BURST_8W_16R = 1 << 5,
+};
+const TestCaseType TEST_CASE_TYPES[] = {
+        SINGLE_8W_8R, BURST_8W_8R, SINGLE_16W_8R, BURST_16W_8R, SINGLE_8W_16R, BURST_8W_16R
+};
+
+const char *get_test_case_type_name(TestCaseType value)
+{
+    switch (value) {
+        case SINGLE_8W_8R:
+            return "single_w8_r8";
+        case BURST_8W_8R:
+            return "burst_w8_r8";
+        case SINGLE_16W_8R:
+            return "single_w16_r8";
+        case BURST_16W_8R:
+            return "burst_w16_r8";
+        case SINGLE_8W_16R:
+            return "single_w8_r16";
+        case BURST_8W_16R:
+            return "burst_w8_r16";
+    }
+    MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_APPLICATION, MBED_ERROR_CODE_INVALID_ARGUMENT), "Unknown case type");
+}
+
+enum TestCaseAPIUsage {
+    API_USAGE_SYNC = 1 << 0,
+    API_USAGE_ASYNC = 1 << 1,
+    // call SPI::abort_all_transfers before each write/read cycle
+    API_USAGE_CALL_ABORT_BEFORE = 1 << 2,
+    // call SPI::abort_all_transfers after each write/read cycle
+    API_USAGE_CALL_ABORT_AFTER = 1 << 3,
+    // add small delay before each write/read cycle
+    API_USAGE_ADD_DELAY_BEFORE = 1 << 4,
+    //add small delay after each write/read cycle
+    API_USAGE_ADD_DELAY_AFTER = 1 << 5,
+};
+
+const char *get_api_usage_name(int value)
+{
+    switch (value) {
+        case API_USAGE_ASYNC:
+            return "async";
+        case API_USAGE_ASYNC | API_USAGE_CALL_ABORT_BEFORE:
+            return "async (+ abort_all_transfers before)";
+        case API_USAGE_ASYNC | API_USAGE_CALL_ABORT_AFTER:
+            return "async (+ abort_all_transfers after)";
+        case API_USAGE_ASYNC | API_USAGE_ADD_DELAY_BEFORE:
+            return "async (+ small delay before)";
+        case API_USAGE_ASYNC | API_USAGE_ADD_DELAY_AFTER:
+            return "async (+ small delay after)";
+        case API_USAGE_SYNC:
+            return "sync";
+        case API_USAGE_SYNC | API_USAGE_CALL_ABORT_BEFORE:
+            return "sync (+ abort_all_transfers before)";
+        case API_USAGE_SYNC | API_USAGE_CALL_ABORT_AFTER:
+            return "sync (+ abort_all_transfers after)";
+        case API_USAGE_SYNC | API_USAGE_ADD_DELAY_BEFORE:
+            return "sync (+ small delay before)";
+        case API_USAGE_SYNC | API_USAGE_ADD_DELAY_AFTER:
+            return "sync (+ small delay after)";
+        default:
+            // don't process other cases for simplicity
+            return "invalid combination";
+    }
+}
+
+
 /**
- * SPI test results
+ * Test case result.
  *
  * Note: in some cases we may transitive and receive, but dummy "reads" may be generated,
- * that is indicated with `*_rw_data_ok_count` and `*_rw_clock_ok_count` fields
+ * that is indicated with `data_ok` and `clock_ok` fields
  */
-struct spi_3_wire_test_result_t {
+class TestCaseResult {
+public:
+    TestCaseResult(const TestCaseType case_type) : case_type(case_type)
+    {
+        reset();
+    }
+
+    /* case type */
+    const TestCaseType case_type;
+
+    /* total passes */
+    int total;
+    /* total successful passes */
+    int successful;
+    /* total successful passes with correct data */
+    int data_ok;
+    /* total successful passes with correct clock count */
+    int clock_ok;
+
+
+    bool is_ok() const
+    {
+        return total == successful;
+    }
+
+    bool is_data_ok() const
+    {
+        return total == data_ok;
+    }
+
+    bool is_clock_ok() const
+    {
+        return total == clock_ok;
+    }
+
+    void reset()
+    {
+        total = 0;
+        successful = 0;
+        data_ok = 0;
+        clock_ok = 0;
+    }
+};
+
+
+class ScenarioConfiguration {
+public:
+    const int spi_freq;
+    const int api_usage;
+    const int test_case_type;
+
+    ScenarioConfiguration(int spi_freq, int api_usage, int test_case_type)
+            : spi_freq(spi_freq), api_usage(api_usage), test_case_type(test_case_type)
+    {
+    }
+};
+
+struct ScenarioResult {
+public:
+    ScenarioResult(const ScenarioConfiguration *configuration)
+            : configuration(configuration)
+    {
+        target_spi_frequency = configuration->spi_freq;
+        for (TestCaseType test_case_type: TEST_CASE_TYPES) {
+            if (configuration->test_case_type & test_case_type) {
+                test_case_results.create_and_append((TestCaseType)test_case_type);
+            }
+        }
+    }
+
+    const ScenarioConfiguration *const configuration;
+
     /** If during BMX160 configuration any SPI object methods returns an error, it will be saved here */
-    int init_error;
+    int init_error = 0;
 
-    /** Total number of tests with single byte read/write */
-    int single_rw_count;
-    /** Total number of tests with single byte read/write that succeed */
-    int single_rw_ok_count;
-    /** Total number of tests with single byte read/write that returns correct data */
-    int single_rw_data_ok_count;
-    /** Total number of tests with single byte read/write that has correct number of clock cycles */
-    int single_rw_clock_ok_count;
-
-    /** Total number of tests with multiple byte read/write */
-    int burst_rw_count;
-    /** Total number of tests with multiple byte read/write that succeed */
-    int burst_rw_ok_count;
-    /** Total number of tests with multiple byte read/write that returns correct data */
-    int burst_rw_data_ok_count;
-    /** Total number of tests with multiple byte read/write that has correct number of clock cycles */
-    int burst_rw_clock_ok_count;
-
-    /** Asynchronous API usage flag */
-    bool async_api;
     /** Target SPI frequency */
-    int target_spi_frequency;
+    int target_spi_frequency = 0;
     /** Actual SPI frequency */
-    int actual_spi_frequency;
+    int actual_spi_frequency = 0;
+
+    /** test results list */
+    SimpleList<TestCaseResult> test_case_results;
 };
 
 
@@ -824,18 +957,15 @@ struct spi_3_wire_test_result_t {
  */
 class BMX160SPI3WireTester : NonCopyable<BMX160SPI3WireTester> {
     static constexpr int DEFAULT_TEST_NUMBER = 64;
-    static constexpr int DEFAULT_SPI_FREQ = 10'000'000;
 protected:
     PinName _spi_mosi_pin;
     PinName _spi_miso_pin;
     PinName _spi_sclk_pin;
     PinName _spi_ssel_pin;
+    DigitalOut _spi_ssel;
     PinName _spi_sclk_counter_pin;
 
-    int _single_rw_test_number = DEFAULT_TEST_NUMBER;
-    int _burst_rw_test_number = DEFAULT_TEST_NUMBER;
-    int _spi_freq = DEFAULT_SPI_FREQ;
-    int _spi_async_api_usage;
+    int _test_number = DEFAULT_TEST_NUMBER;
 
     bool _log = false;
 
@@ -866,6 +996,7 @@ public:
     BMX160SPI3WireTester(PinName spi_mosi, PinName spi_miso, PinName spi_sclk, PinName spi_ssel,
                          PinName spi_sclk_counter)
             : _spi_mosi_pin(spi_mosi), _spi_miso_pin(spi_miso), _spi_sclk_pin(spi_sclk), _spi_ssel_pin(spi_ssel),
+              _spi_ssel(spi_ssel, 1),
               _spi_sclk_counter_pin(spi_sclk_counter)
     {
     }
@@ -881,92 +1012,56 @@ public:
     /**
      * Set test parameters.
      *
-     * @param spi_freq target spi frequency
-     * @param async_api_usage asynchronous API
-     * @param single_rw_test_number number of tests with single byte read/write
-     * @param burst_rw_test_number number of tests with multiple bytes read/write
+     * @param test_number number of test passes for each scenario
      */
-    void configure(int spi_freq, bool async_api_usage,
-                   int single_rw_test_number = DEFAULT_TEST_NUMBER, int burst_rw_test_number = DEFAULT_TEST_NUMBER)
+    void configure(int test_number = DEFAULT_TEST_NUMBER)
     {
-        _single_rw_test_number = single_rw_test_number;
-        _burst_rw_test_number = burst_rw_test_number;
-        _spi_freq = spi_freq;
-        _spi_async_api_usage = async_api_usage;
+        _test_number = test_number;
     }
 
     /**
      * Execute tests.
      */
-    int test(spi_3_wire_test_result_t *test_result)
+    int test(ScenarioResult *test_result)
     {
-        int api_init_err;
-        uint8_t out_buf[6];
-        uint8_t in_buf[6];
+        const ScenarioConfiguration *configuration = test_result->configuration;
 
+        // construct SPI and pulse counter
+        _spi_ssel = 1;
+        SPIExt spi(_spi_mosi_pin, _spi_miso_pin, _spi_sclk_pin);
+        spi.frequency(configuration->spi_freq);
+        PulseCounter pc(_spi_sclk_counter_pin, PulseCounter::RisingEdge, PullNone);
+        BMX160SPI3WireAPITester api(&spi, &_spi_ssel);
 
-        BMX160SPI3WireAPI *api = new BMX160SPI3WireAPI(
-                _spi_mosi_pin, _spi_miso_pin, _spi_sclk_pin, _spi_ssel_pin,
-                _spi_freq);
-        PulseCounter *pc = new PulseCounter(_spi_sclk_counter_pin, PulseCounter::RisingEdge, PullNone);
+        int async_flag = configuration->api_usage & (API_USAGE_SYNC | API_USAGE_ASYNC);
+        if (async_flag == API_USAGE_SYNC) {
+            api.set_async(false);
+        } else if (async_flag == API_USAGE_ASYNC) {
+            api.set_async(true);
+        } else {
+            MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_APPLICATION, MBED_ERROR_CODE_INVALID_ARGUMENT),
+                       "API_USAGE_SYNC or API_USAGE_ASYNC flags must be set");
+        }
+
+        api.set_log(_log);
+
+        // cleanup results
+        test_result->init_error = 0;
+        test_result->target_spi_frequency = configuration->spi_freq;
+        test_result->actual_spi_frequency = spi.get_real_frequency();
 
 
         _log_msg("INFO", "================= start test =================");
-        api->set_async(_spi_async_api_usage);
-        api->set_log(_log);
-        if ((api_init_err = api->init())) {
-            _log_msg("ERROR", "API initialization error %i", api_init_err);
+        test_result->init_error = api.init();
+        if (test_result->init_error) {
+            _log_msg("ERROR", "API initialization error %i", test_result->init_error);
         }
-
-        // log main information
-        int actual_spi_freq = api->get_real_spi_frequency();
-        _log_msg("INFO", "target SPI frequency: %i Hz", _spi_freq);
-        _log_msg("INFO", "actual SPI frequency: %i Hz", actual_spi_freq);
-        _log_msg("INFO", "SPI API type: %s", _spi_async_api_usage ? "asynchronous" : "synchronous");
-
-        // initialize result structure
-        test_result->init_error = api_init_err;
-        test_result->single_rw_count = _single_rw_test_number;
-        test_result->single_rw_ok_count = 0;
-        test_result->single_rw_data_ok_count = 0;
-        test_result->single_rw_clock_ok_count = 0;
-        test_result->burst_rw_count = _single_rw_test_number;
-        test_result->burst_rw_ok_count = 0;
-        test_result->burst_rw_data_ok_count = 0;
-        test_result->burst_rw_clock_ok_count = 0;
-        test_result->async_api = _spi_async_api_usage;
-        test_result->target_spi_frequency = _spi_freq;
-        test_result->actual_spi_frequency = actual_spi_freq;
-
-        _log_msg("INFO", "test single read/write");
-        out_buf[0] = 0;
-        auto single_data_updater = [](uint8_t *data) {
-            data[0] += 7;
-        };
-        _rw_test_impl(api, pc, test_result->single_rw_count,
-                      out_buf, in_buf, 1, single_data_updater,
-                      &test_result->single_rw_ok_count,
-                      &test_result->single_rw_data_ok_count,
-                      &test_result->single_rw_clock_ok_count
-        );
-
-        _log_msg("INFO", "test burst read/write");
-        memset(out_buf, 0, sizeof(out_buf));
-        auto burst_data_updater = [](uint8_t *data) {
-            for (int i = 0; i < 6; i++) {
-                data[i] += i + 1;
-            }
-        };
-        _rw_test_impl(api, pc, test_result->burst_rw_count,
-                      out_buf, in_buf, 6, burst_data_updater,
-                      &test_result->burst_rw_ok_count,
-                      &test_result->burst_rw_data_ok_count,
-                      &test_result->burst_rw_clock_ok_count
-        );
-
-
-        delete pc;
-        delete api;
+        // run test cases
+        auto test_case_iterator = test_result->test_case_results.iterator();
+        TestCaseResult *test_case;
+        while ((test_case = test_case_iterator.next()) != nullptr) {
+            _test_passes_case_impl(test_case, configuration->api_usage, &api, &pc);
+        }
         _log_msg("INFO", "================ complete test ================");
         return 0;
     }
@@ -981,143 +1076,282 @@ public:
         return buf;
     }
 
-    int _rw_test_impl(BMX160SPI3WireAPI *api, PulseCounter *pc, int total_tests,
-                      uint8_t *out_buf, uint8_t *in_buf, size_t buf_len, Callback<void(uint8_t *data)> buf_updater,
-                      int *ok_count, int *data_ok_count, int *clock_ok_count)
+    void _swap_16_bit_bytes(uint8_t *data, int len)
     {
-        BMX160Register base_reg = BMX160Register::OFFSET_ACCEL_X;
-        int err_read, err_write, err_data, err_clock;
-        int actual_clock_count;
-        int expected_clock_count = (buf_len + 1) * 2 * 8;
+        MBED_ASSERT(len % 2 == 0);
+        for (int i = 0; i < len; i += 2) {
+            uint8_t tmp = data[i];
+            data[i] = data[i + 1];
+            data[i + 1] = tmp;
+        }
+    }
+
+    struct test_pass_result_t {
+        bool ok;
+        bool data_ok;
+        bool clock_ok;
+    };
+
+    test_pass_result_t _test_pass_impl(BMX160SPI3WireAPITester *api, PulseCounter *pc,
+                                       int api_usage_flags, int w_bits, int r_bits,
+                                       const uint8_t data[6], int len)
+    {
+        MBED_ASSERT(w_bits == 8 || w_bits == 16);
+        MBED_ASSERT(r_bits == 8 || r_bits == 16);
+        MBED_ASSERT(len <= 6);
+        uint8_t w_data[6];
+        uint8_t r_data[6];
         char in_buf_msg[16];
         char out_buf_msg[16];
 
-        MBED_ASSERT(buf_len <= 6);
+        int w_err;
+        int r_err;
+        int w_ticks;
+        int r_ticks;
+        test_pass_result_t result;
 
-        for (int i = 0; i < total_tests; i++) {
-            // clear input buffer and clock counter
-            memset(in_buf, 0, buf_len);
-            pc->reset();
-
-            // call SPI:spi_abort_all_transfers to check that it has no side effects
+        if (api_usage_flags & API_USAGE_ADD_DELAY_BEFORE) {
+            ThisThread::sleep_for(1ms);
+        }
+        if (api_usage_flags & API_USAGE_CALL_ABORT_BEFORE) {
             api->call_spi_abort_all_transfers();
-
-            // transmit data to BMX160
-            err_write = api->register_write(base_reg, out_buf, buf_len);
-            // receive data from BMX160
-            err_read = api->register_read(base_reg, in_buf, buf_len);
-
-            // get actual number of clock cycles
-            actual_clock_count = pc->get_count();
-
-            // check data correctness
-            if (memcmp(out_buf, in_buf, buf_len) == 0) {
-                err_data = 0;
-                (*data_ok_count)++;
-            } else {
-                err_data = -1;
-                _log_msg("ERROR", "transmitted and received data differs: 0x%s != 0x%s",
-                         _format_bytes(out_buf_msg, out_buf, buf_len),
-                         _format_bytes(in_buf_msg, in_buf, buf_len));
-            }
-
-            // check clock cycles
-            if (actual_clock_count == expected_clock_count) {
-                err_clock = 0;
-                (*clock_ok_count)++;
-            } else {
-                err_clock = -1;
-                _log_msg("ERROR", "expected %i SPI clock cycles, but got %i", expected_clock_count, actual_clock_count);
-            }
-
-            // check read/write error
-            if (err_read) {
-                _log_msg("ERROR", "reading from register error %i", err_read);
-            }
-            if (err_write) {
-                _log_msg("ERROR", "writing to register error %i", err_read);
-            }
-
-            // check overall result
-            if (err_read == 0 && err_write == 0 && err_data == 0 && err_clock == 0) {
-                (*ok_count)++;
-            }
-
-            // update test data
-            buf_updater(out_buf);
         }
 
+        // send bytes
+        memcpy(w_data, data, len);
+        pc->reset();
+        w_err = api->write_data(w_data, len, w_bits);
+        w_ticks = pc->get_count();
+
+        // read bytes
+        pc->reset();
+        r_err = api->read_data(r_data, len, r_bits);
+        r_ticks = pc->get_count();
+
+        if (api_usage_flags & API_USAGE_CALL_ABORT_AFTER) {
+            api->call_spi_abort_all_transfers();
+        }
+        if (api_usage_flags & API_USAGE_ADD_DELAY_AFTER) {
+            ThisThread::sleep_for(1ms);
+        }
+
+        // check API errors
+        result.ok = true;
+        if (w_err) {
+            _log_msg("ERROR", "Transmit error %i", w_err);
+            result.ok = false;
+        }
+        if (r_err) {
+            _log_msg("ERROR", "Receive error %i", r_err);
+            result.ok = false;
+        }
+        // check ticks number
+        result.clock_ok = true;
+        int expected_ticks = 8 * (len + 1);
+        if (w_ticks != expected_ticks) {
+            _log_msg("ERROR", "Write error. Expect %i ticks, but got %i", expected_ticks, w_ticks);
+            result.clock_ok = false;
+        }
+        if (r_ticks != expected_ticks) {
+            _log_msg("ERROR", "Read error. Expect %i ticks, but got %i", expected_ticks, r_ticks);
+            result.clock_ok = false;
+        }
+        if (!result.clock_ok) {
+            result.ok = false;
+        }
+        // check data
+        result.data_ok = true;
+        if (w_bits == 16) {
+            _swap_16_bit_bytes(w_data, len);
+        }
+        if (r_bits == 16) {
+            _swap_16_bit_bytes(r_data, len);
+        }
+        if (strncmp((const char *)w_data, (const char *)r_data, len) != 0) {
+            result.data_ok = false;
+            result.ok = false;
+            _log_msg("ERROR", "transmitted and received data differs: 0x%s != 0x%s",
+                     _format_bytes(out_buf_msg, w_data, len),
+                     _format_bytes(in_buf_msg, r_data, len)
+            );
+        }
+
+        return result;
+    }
+
+    void _test_passes_impl(BMX160SPI3WireAPITester *api, PulseCounter *pc,
+                           int api_usage_flags, int w_bits, int r_bits, int len, int test_number,
+                           TestCaseResult *result)
+    {
+        test_pass_result_t step_result;
+        uint8_t data[6] = {0};
+
+        MBED_ASSERT(w_bits == 8 || w_bits == 16);
+        MBED_ASSERT(r_bits == 8 || r_bits == 16);
+        MBED_ASSERT(len <= 6);
+
+        result->reset();
+        result->total = test_number;
+
+        for (int i = 0; i < test_number; i++) {
+            step_result = _test_pass_impl(api, pc, api_usage_flags, w_bits, r_bits, data, len);
+            if (step_result.ok) {
+                result->successful += 1;
+            }
+            if (step_result.clock_ok) {
+                result->clock_ok += 1;
+            }
+            if (step_result.data_ok) {
+                result->data_ok += 1;
+            }
+            // update data
+            for (int j = 0; j < len; j++) {
+                data[j] += j + 1;
+            }
+        }
+    }
+
+    int _test_passes_case_impl(TestCaseResult *result, int api_usage_flags,
+                               BMX160SPI3WireAPITester *api, PulseCounter *pc)
+    {
+        switch (result->case_type) {
+            case SINGLE_8W_8R:
+                _log_msg("INFO", "test single write (8 bit) / read (8 bit)");
+                _test_passes_impl(api, pc, api_usage_flags, 8, 8, 1, _test_number, result);
+                break;
+            case BURST_8W_8R:
+                _log_msg("INFO", "test burst write (8 bit) / read (8 bit)");
+                _test_passes_impl(api, pc, api_usage_flags, 8, 8, 6, _test_number, result);
+                break;
+            case SINGLE_16W_8R:
+                _log_msg("INFO", "test single write (16 bit) / read (8 bit)");
+                _test_passes_impl(api, pc, api_usage_flags, 16, 8, 2, _test_number, result);
+                break;
+            case BURST_16W_8R:
+                _log_msg("INFO", "test burst write (16 bit) / read (8 bit)");
+                _test_passes_impl(api, pc, api_usage_flags, 16, 8, 6, _test_number, result);
+                break;
+            case SINGLE_8W_16R:
+                _log_msg("INFO", "test burst write (8 bit) / read (16 bit)");
+                _test_passes_impl(api, pc, api_usage_flags, 8, 16, 2, _test_number, result);
+                break;
+            case BURST_8W_16R:
+                _log_msg("INFO", "test burst write (8 bit) / read (16 bit)");
+                _test_passes_impl(api, pc, api_usage_flags, 8, 16, 6, _test_number, result);
+                break;
+            default:
+                MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_APPLICATION, MBED_ERROR_CODE_INVALID_ARGUMENT),
+                           "Unknown case type");
+        }
         return 0;
     }
+
+
 };
 
+static DigitalOut user_led(LED1, 1);
 
-struct test_conf_t {
-    int spi_freq;
-    int async_api_usage;
+static BMX160SPI3WireTester bmx160SPI3WireTester(BMX160_SPI_MOSI, BMX160_SPI_MISO, BMX160_SPI_SCK, BMX160_SPI_CSB,
+                                                 BMX160_SPI_CLK_COUNTER);
 
-    spi_3_wire_test_result_t result;
+
+static const ScenarioConfiguration test_configurations[] = {
+        {1'000'000, API_USAGE_SYNC, SINGLE_8W_8R},
+        {1'000'000, API_USAGE_SYNC, BURST_8W_8R},
+        {1'000'000, API_USAGE_SYNC, SINGLE_16W_8R},
+        {1'000'000, API_USAGE_SYNC, BURST_16W_8R},
+        {1'000'000, API_USAGE_SYNC, SINGLE_8W_16R},
+        {1'000'000, API_USAGE_SYNC, BURST_8W_16R},
+
+        {200'000, API_USAGE_SYNC, SINGLE_8W_8R},
+        {200'000, API_USAGE_SYNC, BURST_8W_8R},
+        {200'000, API_USAGE_SYNC, SINGLE_16W_8R},
+        {200'000, API_USAGE_SYNC, BURST_16W_8R},
+        {200'000, API_USAGE_SYNC, SINGLE_8W_16R},
+        {200'000, API_USAGE_SYNC, BURST_8W_16R},
+
+        {10'000'000, API_USAGE_SYNC, SINGLE_8W_8R},
+        {10'000'000, API_USAGE_SYNC, BURST_8W_8R},
+        {10'000'000, API_USAGE_SYNC, SINGLE_16W_8R},
+        {10'000'000, API_USAGE_SYNC, BURST_16W_8R},
+        {10'000'000, API_USAGE_SYNC, SINGLE_8W_16R},
+        {10'000'000, API_USAGE_SYNC, BURST_8W_16R},
+
+        {1'000'000, API_USAGE_ASYNC | API_USAGE_CALL_ABORT_AFTER, SINGLE_8W_8R},
+        {1'000'000, API_USAGE_ASYNC, BURST_8W_8R},
+        {1'000'000, API_USAGE_ASYNC, SINGLE_16W_8R},
+        {1'000'000, API_USAGE_ASYNC, BURST_16W_8R},
+        {1'000'000, API_USAGE_ASYNC, SINGLE_8W_16R},
+        {1'000'000, API_USAGE_ASYNC, BURST_8W_16R},
+
+        {200'000, API_USAGE_ASYNC | API_USAGE_CALL_ABORT_AFTER, SINGLE_8W_8R},
+        {200'000, API_USAGE_ASYNC, BURST_8W_8R},
+        {200'000, API_USAGE_ASYNC, SINGLE_16W_8R},
+        {200'000, API_USAGE_ASYNC, BURST_16W_8R},
+        {200'000, API_USAGE_ASYNC, SINGLE_8W_16R},
+        {200'000, API_USAGE_ASYNC, BURST_8W_16R},
+
+        {10'000'000, API_USAGE_ASYNC, SINGLE_8W_8R},
+        {10'000'000, API_USAGE_ASYNC, BURST_8W_8R},
+        {10'000'000, API_USAGE_ASYNC, SINGLE_16W_8R},
+        {10'000'000, API_USAGE_ASYNC, BURST_16W_8R},
+        {10'000'000, API_USAGE_ASYNC, SINGLE_8W_16R},
+        {10'000'000, API_USAGE_ASYNC, BURST_8W_16R},
 };
-
+static bool TEST_VERBOSE = true;
 
 int main()
 {
-    static DigitalOut user_led(LED1, 1);
-    static BMX160SPI3WireTester tester(
-            BMX160_SPI_MOSI, BMX160_SPI_MISO, BMX160_SPI_SCK, BMX160_SPI_CSB,
-            BMX160_SPI_CLK_COUNTER
-    );
-    tester.set_log(true);
+    SimpleList<ScenarioResult> results;
+    ScenarioResult *result;
+    SimpleList<ScenarioResult>::SimpleListIterator result_iterator;
+    TestCaseResult *test_case_result;
+    SimpleList<TestCaseResult>::SimpleListIterator test_case_result_iterator;
 
-    static test_conf_t tests_conf[] = {
-            {200'000,    false}, // 200 KHz, synchronous API
-            {1'000'000,  false}, // 1 MHz, synchronous API
-            {12'500'000, false}, // 12.5 MHz, synchronous API
-            {200'000,   true}, // 200 KHz, asynchronous API
-            {1'000'000, true}, // 1 MHz, asynchronous API
-            {12'500'000, true}, // 12.5 MHz, asynchronous API
-    };
+
+    // prepare test_result structures
+    for (const auto &test_configuration: test_configurations) {
+        results.create_and_append(&test_configuration);
+    }
 
     // run tests
-    for (auto &test_conf: tests_conf) {
-        tester.configure(test_conf.spi_freq, test_conf.async_api_usage);
-        tester.test(&test_conf.result);
-        // delay between test
-        ThisThread::sleep_for(1s);
+    printf("================================ start ================================\n");
+    bmx160SPI3WireTester.set_log(TEST_VERBOSE);
+    result_iterator = results.iterator();
+    while ((result = result_iterator.next()) != nullptr) {
+        bmx160SPI3WireTester.test(result);
     }
+    printf("================================ finish ================================\n");
 
-    printf("================== test results ===================\n");
-    // print test results as table
-    printf("| target SPI frequency | actual SPI frequency |   API type   | test result | init error | single r/w result | single r/w data error | single r/w clock error | burst r/w result | burst r/w data error | burst r/w clock error |\n");
-    printf("| -------------------- | -------------------- | ------------ | ----------- | ---------- | ----------------- | --------------------- | ---------------------- | ---------------- | -------------------- | --------------------- |\n");
-    for (auto &test_conf: tests_conf) {
-        bool single_rw_ok = test_conf.result.single_rw_count == test_conf.result.single_rw_ok_count;
-        bool single_rw_data_error = test_conf.result.single_rw_count != test_conf.result.single_rw_data_ok_count;
-        bool single_rw_clock_error = test_conf.result.single_rw_count != test_conf.result.single_rw_clock_ok_count;
-        bool burst_rw_ok = test_conf.result.burst_rw_count == test_conf.result.burst_rw_ok_count;
-        bool burst_rw_data_error = test_conf.result.burst_rw_count != test_conf.result.burst_rw_data_ok_count;
-        bool burst_rw_clock_error = test_conf.result.burst_rw_count != test_conf.result.burst_rw_clock_ok_count;
-
-        printf("| %17i Hz | %17i Hz | %12s | %11s | %10i | %17s | %21s | %22s | %16s | %20s | %21s |\n",
-               test_conf.result.target_spi_frequency, test_conf.result.actual_spi_frequency,
-               test_conf.result.async_api ? "asynchronous" : "synchronous",
-               single_rw_ok && burst_rw_ok && (test_conf.result.init_error == 0) ? "OK" : "ERROR",
-               test_conf.result.init_error,
-
-               single_rw_ok ? "OK" : "ERROR",
-               single_rw_data_error ? "yes" : "no",
-               single_rw_clock_error ? "yes" : "no",
-
-               burst_rw_ok ? "OK" : "ERROR",
-               burst_rw_data_error ? "yes" : "no",
-               burst_rw_clock_error ? "yes" : "no"
-        );
+    // show results
+    printf("================================ result ================================\n");
+    result_iterator = results.iterator();
+    int scenario_i = 1;
+    auto result_str = [](bool result) { return result ? "success" : "error"; };
+    printf("|    |                                 api  |      case name | target freq (Hz) | actual freq (Hz) |    init |  result |    data |   clock |\n");
+    printf("|----|--------------------------------------|----------------|------------------|------------------|---------|---------|---------|---------|\n");
+    while ((result = result_iterator.next()) != nullptr) {
+        test_case_result_iterator = result->test_case_results.iterator();
+        while ((test_case_result = test_case_result_iterator.next()) != nullptr) {
+            printf("| %2i | %36s | %14s | %16i | %16i | %7s | %7s | %7s | %7s |\n",
+                   scenario_i,
+                   get_api_usage_name(result->configuration->api_usage),
+                   get_test_case_type_name(test_case_result->case_type),
+                   result->target_spi_frequency,
+                   result->actual_spi_frequency,
+                   result_str(result->init_error == 0),
+                   result_str(test_case_result->is_ok()),
+                   result_str(test_case_result->is_data_ok()),
+                   result_str(test_case_result->is_clock_ok())
+            );
+        }
+        scenario_i++;
     }
+    printf("========================================================================\n");
 
-    printf("=================== blink demo ====================\n");
     while (true) {
-        ThisThread::sleep_for(500ms);
         user_led = !user_led;
+        ThisThread::sleep_for(1000ms);
     }
 
     return 0;
