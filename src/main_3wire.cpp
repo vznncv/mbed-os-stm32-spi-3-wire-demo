@@ -53,15 +53,17 @@
  * 8. "data" - it's "success" if received and send data are same (with byte order correction).
  * 9. "clock" - it's "success" if SPI generated correct number of clock ticks.
  */
+#if MBED_CONF_APP_TEST_TARGET == MAIN_3WIRE
+
 #include <cstdarg>
 #include <cstring>
-#include <utility>
-#include <type_traits>
 #include <chrono>
 
 #include "mbed.h"
-#include "pwmout_api.h"
 
+#include "app_pulse_counter.h"
+#include "app_spi_ext.h"
+#include "app_utils.h"
 
 //----------------------------------------------------------------------------//
 // Hardware pins
@@ -79,280 +81,10 @@
 // SPI CLK counter pin. It should be connected to SPI CLK pin
 #define BMX160_SPI_CLK_COUNTER PA_0
 
-//----------------------------------------------------------------------------//
-// Helper SPI interface that able to print actual frequency
-//----------------------------------------------------------------------------//
-extern "C" {
-extern int spi_get_clock_freq(spi_t *obj);
-}
-
-/**
- * Convert SPI_BAUDRATEPRESCALER_X constant into prescaler rank.
- */
-static uint8_t spi_get_baudrate_prescaler_rank(uint32_t value)
-{
-    switch (value) {
-        case SPI_BAUDRATEPRESCALER_2:
-            return 0;
-        case SPI_BAUDRATEPRESCALER_4:
-            return 1;
-        case SPI_BAUDRATEPRESCALER_8:
-            return 2;
-        case SPI_BAUDRATEPRESCALER_16:
-            return 3;
-        case SPI_BAUDRATEPRESCALER_32:
-            return 4;
-        case SPI_BAUDRATEPRESCALER_64:
-            return 5;
-        case SPI_BAUDRATEPRESCALER_128:
-            return 6;
-        case SPI_BAUDRATEPRESCALER_256:
-            return 7;
-        default:
-            return 0xFF;
-    }
-}
-
-/**
- * Helper SPI extension for STM32.
- *
- * It provides method ::get_real_frequency to get actual SPI frequency.
- */
-class SPIExt : public SPI {
-public:
-    SPIExt(PinName mosi, PinName miso, PinName sclk)
-            : SPI(mosi, miso, sclk)
-    {}
-
-    /**
-     * Get actual SPI frequency;
-     */
-    int get_real_frequency()
-    {
-        spi_t *obj = &_peripheral->spi;
-        SPI_HandleTypeDef *handle = &obj->spi.handle;
-        int base_freq = spi_get_clock_freq(obj);
-        return base_freq >> (spi_get_baudrate_prescaler_rank(handle->Init.BaudRatePrescaler) + 1);
-    }
-};
 
 //----------------------------------------------------------------------------//
-// Helper PWM base class to count signal edges using STM32 ETR TIM feature.
+// Test code and helper functions.
 //----------------------------------------------------------------------------//
-
-/**
- * TIM ETR pinmap.
- *
- * It's difficult to create TIM ETR input map for all MCUs, so we cover only most common cases.
- * Note: this pinmap doesn't cover all cases and may not work with some boards/mcus.
- */
-static const PinMap PinMap_ETR[] = {
-#if defined(TARGET_STM32F0) || defined(TARGET_STM32G0)
-        {PA_0, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF2_TIM2)},
-        {PA_5, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF2_TIM2)},
-        {PA_12, PWM_1, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF2_TIM1)},
-#elif defined (TARGET_STM32F1)
-        {PA_0, PWM_2, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0)},
-        {PA_12, PWM_1, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0)},
-        {PA_15, PWM_2, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 8)},
-#elif defined(TARGET_STM32F2) || defined(TARGET_STM32F2) || defined(TARGET_STM32F4) || defined(TARGET_STM32F7) || defined(TARGET_STM32H7)
-        {PA_0, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF1_TIM2)},
-        {PA_5, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF1_TIM2)},
-        {PA_12, PWM_1, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF1_TIM1)},
-        {PA_15, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF1_TIM2)},
-#elif defined(TARGET_STM32G4)
-        {PA_0, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF14_TIM2)},
-        {PA_5, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF2_TIM2)},
-        {PA_12, PWM_1, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF11_TIM1)},
-        {PA_15, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF14_TIM2)},
-        {PB_3, PWM_3, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF10_TIM3)},
-#elif defined(TARGET_STM32L0)
-        {PA_0, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF5_TIM2)},
-        {PA_5, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF2_TIM2)},
-#elif defined(TARGET_STM32L4) || defined(TARGET_STM32L5)
-        {PA_0, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF14_TIM2)},
-        {PA_5, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF2_TIM2)},
-        {PA_12, PWM_1, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF1_TIM1)},
-        {PA_15, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF2_TIM2)},
-#elif defined(TARGET_STM32WB) || defined(TARGET_STM32WL)
-        {PA_0, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF14_TIM2)},
-        {PA_5, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF2_TIM2)},
-        {PA_12, PWM_1, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF1_TIM1)},
-        {PA_15, PWM_2, STM_PIN_DATA(STM_MODE_AF_OD, GPIO_NOPULL, GPIO_AF2_TIM2)},
-#else
-#error unsupported STM32 target for EdgeCounter
-#endif
-        {NC, NC, 0}
-};
-
-/**
- * Pulse counter.
- *
- * Unlike common interrupt base implementation it doesn't consume CPU time and
- * it able to work with higher frequencies.
- */
-class PulseCounter : NonCopyable<PulseCounter> {
-protected:
-    PinName _pin;
-    PWMName _pwm;
-
-    static PWMName _get_timer(PinName pin)
-    {
-        return (PWMName)pinmap_peripheral(pin, PinMap_ETR);
-    }
-
-    static void _enable_tim_clock(PWMName pwm)
-    {
-        // Enable TIM clock
-        switch (pwm) {
-#if defined(TIM1_BASE)
-            case PWM_1:
-                __HAL_RCC_TIM1_CLK_ENABLE();
-                break;
-#endif
-#if defined(TIM2_BASE)
-            case PWM_2:
-                __HAL_RCC_TIM2_CLK_ENABLE();
-                break;
-#endif
-#if defined(TIM3_BASE)
-            case PWM_3:
-                __HAL_RCC_TIM3_CLK_ENABLE();
-                break;
-#endif
-#if defined(TIM4_BASE)
-            case PWM_4:
-                __HAL_RCC_TIM4_CLK_ENABLE();
-                break;
-#endif
-            default:
-                MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER, MBED_ERROR_CODE_PINMAP_INVALID),
-                           "Specified timer isn't supported by EdgeCounter");
-        }
-    }
-
-    static int _get_encoder_function(PinName pin, PinMode mode)
-    {
-        int function = (int)pinmap_find_function(pin, PinMap_ETR);
-        if (function == NC) {
-            MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER, MBED_ERROR_CODE_PINMAP_INVALID),
-                       "Invalid TIM ETR pin for EdgeCounter");
-        }
-        // update pull up/down method
-        int hal_mode;
-        switch (mode) {
-            case PullUp:
-            case OpenDrainPullUp:
-                hal_mode = GPIO_PULLUP;
-                break;
-            case PullDown:
-            case OpenDrainPullDown:
-                hal_mode = GPIO_PULLDOWN;
-                break;
-            default:
-                hal_mode = GPIO_NOPULL;
-        }
-        function &= ~STM_PIN_PUPD_BITS;
-        function |= (hal_mode & STM_PIN_PUPD_MASK) << STM_PIN_PUPD_SHIFT;
-
-        return function;
-    }
-
-
-public:
-    enum PulseEdge {
-        RisingEdge = 0,
-        FallingEdge = 1
-    };
-
-    /**
-     * Constructor.
-     *
-     * @param pin PulseCounter pin to connect to
-     * @param edge signal edge to count pulse
-     */
-    PulseCounter(PinName pin, PulseEdge edge = FallingEdge, PinMode mode = PullNone)
-            : _pin(pin)
-    {
-        // find target timer
-        _pwm = _get_timer(pin);
-        // get pwm function (with channel information)
-        int function = _get_encoder_function(pin, mode);
-
-        sleep_manager_lock_deep_sleep();
-
-        // enable timer clock
-        _enable_tim_clock(_pwm);
-
-        // Configure TIM ETR mode
-        TIM_HandleTypeDef htim = {};
-        TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-        TIM_MasterConfigTypeDef sMasterConfig = {0};
-        htim.Instance = (TIM_TypeDef *)(_pwm);
-        htim.Init.Prescaler = 0;
-        htim.Init.CounterMode = TIM_COUNTERMODE_UP;
-        htim.Init.Period = 0xFFFF'FFFF;
-        htim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-        htim.Init.RepetitionCounter = 0;
-        htim.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-        if (HAL_TIM_Base_Init(&htim) != HAL_OK) {
-            MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER, MBED_ERROR_CODE_INITIALIZATION_FAILED),
-                       "Fail to configure timer for EdgeCounter");
-        }
-        sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_ETRMODE2;
-        sClockSourceConfig.ClockPolarity =
-                edge == RisingEdge ? TIM_CLOCKPOLARITY_NONINVERTED : TIM_CLOCKPOLARITY_INVERTED;
-        sClockSourceConfig.ClockPrescaler = TIM_CLOCKPRESCALER_DIV1;
-        sClockSourceConfig.ClockFilter = 0;
-        if (HAL_TIM_ConfigClockSource(&htim, &sClockSourceConfig) != HAL_OK) {
-            MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER, MBED_ERROR_CODE_INITIALIZATION_FAILED),
-                       "Fail to configure clock source for EdgeCounter");
-        }
-        sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-        sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-        if (HAL_TIMEx_MasterConfigSynchronization(&htim, &sMasterConfig) != HAL_OK) {
-            MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER, MBED_ERROR_CODE_INITIALIZATION_FAILED),
-                       "Fail to configure master mode for EdgeCounter");
-        }
-
-        // enable pin
-        pin_function(pin, function);
-
-        // run timer
-        if (HAL_TIM_Base_Start(&htim) != HAL_OK) {
-            MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER, MBED_ERROR_CODE_INITIALIZATION_FAILED),
-                       "Fail to start timer for EdgeCounter");
-        }
-
-    }
-
-    ~PulseCounter()
-    {
-        TIM_HandleTypeDef htim = {};
-        htim.Instance = (TIM_TypeDef *)(_pwm);
-
-        // stop timer
-        HAL_TIM_Base_Stop(&htim);
-        // configure GPIO back to reset value
-        pin_function(_pin, STM_PIN_DATA(STM_MODE_ANALOG, GPIO_NOPULL, 0));
-
-        sleep_manager_unlock_deep_sleep();
-    }
-
-    void reset()
-    {
-        auto tim = (TIM_TypeDef *)(_pwm);
-        LL_TIM_SetCounter(tim, 0);
-    }
-
-    int get_count()
-    {
-        auto tim = (TIM_TypeDef *)(_pwm);
-        return (int)LL_TIM_GetCounter(tim);
-    }
-
-};
-
 
 /**
  * Helper wrapper around SPI object for communication with BMX160 sensor.
@@ -385,32 +117,17 @@ public:
     // SPI interface object and configuration
     static const int _SPI_MODE = 3;
     SPI *_spi;
+    SPISyncTransfer _spi_sync_transfer;
     DigitalOut *_spi_ssel;
 
     // asynchronous API usage flags
     bool _use_async = false;
-    EventFlags _async_operation_complete_flag;
-
 
     // helper logging data
     int _transaction_count = 0;
-    bool _log = false;
+    SimpleLogger _logger;
     static constexpr int _LOG_BUF_SIZE = 128;
     char _log_buf[_LOG_BUF_SIZE];
-
-    void _log_msg(const char *type, const char *msg, ...)
-    {
-        if (!_log) {
-            return;
-        }
-
-        printf("[%s] ", type);
-        va_list args;
-        va_start(args, msg);
-        vprintf(msg, args);
-        va_end(args);
-        printf("\n");
-    }
 
     static char *_format_byte(char *str, int *buf_size, char prefix, uint8_t value)
     {
@@ -428,7 +145,7 @@ public:
 
     void _log_transaction(int err, uint8_t reg_addr_cmd, bool read_flag, const uint8_t *data, int len)
     {
-        if (_log) {
+        if (_logger.is_enabled()) {
             int buf_size = _LOG_BUF_SIZE;
             char *data_msg = _log_buf;
             char data_prefix = read_flag ? '<' : '>';
@@ -436,38 +153,19 @@ public:
             for (int i = 0; i < len; i++) {
                 data_msg = _format_byte(data_msg, &buf_size, data_prefix, data[i]);
             }
-            _log_msg("INFO", "spi transaction %2i; err = %2i; data: %s", _transaction_count, err, _log_buf);
+            _logger.info("spi transaction %2i; err = %2i; data: %s", _transaction_count, err, _log_buf);
         }
     }
 
-    void _notify_flag(int event)
-    {
-        if (event == SPI_EVENT_COMPLETE) {
-            // success
-            _async_operation_complete_flag.set(0x1);
-        } else {
-            // error
-            _async_operation_complete_flag.set(0x3);
-        }
-
-    }
 
     int _write_async(const uint8_t *data, int len, int bits)
     {
-        _async_operation_complete_flag.clear();
-        _spi->transfer<uint8_t>(data, len, nullptr, 0, callback(this, &BMX160SPI3WireAPITester::_notify_flag),
-                                SPI_EVENT_ERROR | SPI_EVENT_COMPLETE);
-        uint32_t result = _async_operation_complete_flag.wait_any(0x3);
-        return result == 0x01 ? 0 : -1;
+        return _spi_sync_transfer.sync_transfer((const char *)data, len, nullptr, 0);
     }
 
     int _read_async(uint8_t *data, int len, int bits)
     {
-        _async_operation_complete_flag.clear();
-        _spi->transfer<uint8_t>(nullptr, 0, data, len, callback(this, &BMX160SPI3WireAPITester::_notify_flag),
-                                SPI_EVENT_ERROR | SPI_EVENT_COMPLETE);
-        uint32_t result = _async_operation_complete_flag.wait_any(0x3);
-        return result == 0x01 ? 0 : -1;
+        return _spi_sync_transfer.sync_transfer(nullptr, 0, (char *)data, len);
     }
 
     int _write_sync(const uint8_t *data, int len, int bits)
@@ -525,7 +223,7 @@ public:
      * @param freq SPI frequency
      */
     BMX160SPI3WireAPITester(SPI *spi, DigitalOut *ssel)
-            : _spi(spi), _spi_ssel(ssel)
+            : _spi(spi), _spi_sync_transfer(spi), _spi_ssel(ssel)
     {
     }
 
@@ -534,7 +232,7 @@ public:
      */
     void set_log(bool value)
     {
-        _log = value;
+        _logger.set_enabled(value);
     }
 
     /**
@@ -708,84 +406,6 @@ public:
     }
 };
 
-
-//----------------------------------------------------------------------------//
-// Test code and helper functions.
-//----------------------------------------------------------------------------//
-template<typename T>
-class SimpleList {
-private:
-    struct item_t {
-        T value;
-        item_t *next = nullptr;
-
-        template<typename ...Args>
-        explicit item_t(Args &&...args) : value(std::forward<Args>(args)...)
-        {
-        }
-    };
-
-    item_t *_items = nullptr;
-
-    void _append(item_t *elem)
-    {
-        item_t **last_item = &_items;
-        while (*last_item != nullptr) {
-            last_item = &(*last_item)->next;
-        }
-        *last_item = elem;
-    }
-
-public:
-    SimpleList()
-    {
-    }
-
-    ~SimpleList()
-    {
-        item_t *item = _items;
-        while (item != nullptr) {
-            item_t *next_item = item->next;
-            delete item;
-            item = next_item;
-        }
-    }
-
-    template<typename... Args>
-    T *create_and_append(Args &&... args)
-    {
-        auto elem = new item_t(std::forward<Args>(args)...);
-        _append(elem);
-        return &(elem->value);
-    }
-
-    class SimpleListIterator {
-    private:
-        item_t *_item;
-        friend SimpleList;
-
-        SimpleListIterator(item_t *item) : _item(item)
-        {}
-
-    public:
-        SimpleListIterator() : SimpleListIterator(nullptr)
-        {}
-
-        T *next()
-        {
-            item_t *current = _item;
-            if (current) {
-                _item = current->next;
-            }
-            return &(current->value);
-        }
-    };
-
-    SimpleListIterator iterator()
-    {
-        return SimpleListIterator(_items);
-    }
-};
 
 enum TestCaseType {
     SINGLE_8W_8R = 1 << 0,
@@ -967,21 +587,7 @@ protected:
 
     int _test_number = DEFAULT_TEST_NUMBER;
 
-    bool _log = false;
-
-    void _log_msg(const char *type, const char *msg, ...)
-    {
-        if (!_log) {
-            return;
-        }
-
-        printf("[%s] ", type);
-        va_list args;
-        va_start(args, msg);
-        vprintf(msg, args);
-        va_end(args);
-        printf("\n");
-    }
+    SimpleLogger _logger;
 
 public:
     /**
@@ -1006,7 +612,7 @@ public:
      */
     void set_log(bool value)
     {
-        _log = value;
+        _logger.set_enabled(value);
     }
 
     /**
@@ -1043,7 +649,7 @@ public:
                        "API_USAGE_SYNC or API_USAGE_ASYNC flags must be set");
         }
 
-        api.set_log(_log);
+        api.set_log(_logger.is_enabled());
 
         // cleanup results
         test_result->init_error = 0;
@@ -1051,29 +657,16 @@ public:
         test_result->actual_spi_frequency = spi.get_real_frequency();
 
 
-        _log_msg("INFO", "================= start test =================");
+        _logger.info("================= start test =================");
         test_result->init_error = api.init();
         if (test_result->init_error) {
-            _log_msg("ERROR", "API initialization error %i", test_result->init_error);
+            _logger.error("API initialization error %i", test_result->init_error);
         }
-        // run test cases
-        auto test_case_iterator = test_result->test_case_results.iterator();
-        TestCaseResult *test_case;
-        while ((test_case = test_case_iterator.next()) != nullptr) {
-            _test_passes_case_impl(test_case, configuration->api_usage, &api, &pc);
+        for (TestCaseResult &test_case: test_result->test_case_results) {
+            _test_passes_case_impl(&test_case, configuration->api_usage, &api, &pc);
         }
-        _log_msg("INFO", "================ complete test ================");
+        _logger.info("================ complete test ================");
         return 0;
-    }
-
-    static char *_format_bytes(char *buf, const uint8_t *data, size_t len)
-    {
-        char *buf_ptr = buf;
-        for (size_t i = 0; i < len; i++) {
-            sprintf(buf_ptr, "%02X", data[i]);
-            buf_ptr += 2;
-        }
-        return buf;
     }
 
     void _swap_16_bit_bytes(uint8_t *data, int len)
@@ -1138,22 +731,22 @@ public:
         // check API errors
         result.ok = true;
         if (w_err) {
-            _log_msg("ERROR", "Transmit error %i", w_err);
+            _logger.error("Transmit error %i", w_err);
             result.ok = false;
         }
         if (r_err) {
-            _log_msg("ERROR", "Receive error %i", r_err);
+            _logger.error("Receive error %i", r_err);
             result.ok = false;
         }
         // check ticks number
         result.clock_ok = true;
         int expected_ticks = 8 * (len + 1);
         if (w_ticks != expected_ticks) {
-            _log_msg("ERROR", "Write error. Expect %i ticks, but got %i", expected_ticks, w_ticks);
+            _logger.error("Write error. Expect %i ticks, but got %i", expected_ticks, w_ticks);
             result.clock_ok = false;
         }
         if (r_ticks != expected_ticks) {
-            _log_msg("ERROR", "Read error. Expect %i ticks, but got %i", expected_ticks, r_ticks);
+            _logger.error("Read error. Expect %i ticks, but got %i", expected_ticks, r_ticks);
             result.clock_ok = false;
         }
         if (!result.clock_ok) {
@@ -1170,9 +763,9 @@ public:
         if (strncmp((const char *)w_data, (const char *)r_data, len) != 0) {
             result.data_ok = false;
             result.ok = false;
-            _log_msg("ERROR", "transmitted and received data differs: 0x%s != 0x%s",
-                     _format_bytes(out_buf_msg, w_data, len),
-                     _format_bytes(in_buf_msg, r_data, len)
+            _logger.error("transmitted and received data differs: 0x%s != 0x%s",
+                          format_bytes_hex(out_buf_msg, w_data, len),
+                          format_bytes_hex(in_buf_msg, r_data, len)
             );
         }
 
@@ -1216,27 +809,27 @@ public:
     {
         switch (result->case_type) {
             case SINGLE_8W_8R:
-                _log_msg("INFO", "test single write (8 bit) / read (8 bit)");
+                _logger.info("test single write (8 bit) / read (8 bit)");
                 _test_passes_impl(api, pc, api_usage_flags, 8, 8, 1, _test_number, result);
                 break;
             case BURST_8W_8R:
-                _log_msg("INFO", "test burst write (8 bit) / read (8 bit)");
+                _logger.info("test burst write (8 bit) / read (8 bit)");
                 _test_passes_impl(api, pc, api_usage_flags, 8, 8, 6, _test_number, result);
                 break;
             case SINGLE_16W_8R:
-                _log_msg("INFO", "test single write (16 bit) / read (8 bit)");
+                _logger.info("test single write (16 bit) / read (8 bit)");
                 _test_passes_impl(api, pc, api_usage_flags, 16, 8, 2, _test_number, result);
                 break;
             case BURST_16W_8R:
-                _log_msg("INFO", "test burst write (16 bit) / read (8 bit)");
+                _logger.info("test burst write (16 bit) / read (8 bit)");
                 _test_passes_impl(api, pc, api_usage_flags, 16, 8, 6, _test_number, result);
                 break;
             case SINGLE_8W_16R:
-                _log_msg("INFO", "test burst write (8 bit) / read (16 bit)");
+                _logger.info("test burst write (8 bit) / read (16 bit)");
                 _test_passes_impl(api, pc, api_usage_flags, 8, 16, 2, _test_number, result);
                 break;
             case BURST_8W_16R:
-                _log_msg("INFO", "test burst write (8 bit) / read (16 bit)");
+                _logger.info("test burst write (8 bit) / read (16 bit)");
                 _test_passes_impl(api, pc, api_usage_flags, 8, 16, 6, _test_number, result);
                 break;
             default:
@@ -1256,58 +849,53 @@ static BMX160SPI3WireTester bmx160SPI3WireTester(BMX160_SPI_MOSI, BMX160_SPI_MIS
 
 
 static const ScenarioConfiguration test_configurations[] = {
-        {1'000'000, API_USAGE_SYNC, SINGLE_8W_8R},
-        {1'000'000, API_USAGE_SYNC, BURST_8W_8R},
-        {1'000'000, API_USAGE_SYNC, SINGLE_16W_8R},
-        {1'000'000, API_USAGE_SYNC, BURST_16W_8R},
-        {1'000'000, API_USAGE_SYNC, SINGLE_8W_16R},
-        {1'000'000, API_USAGE_SYNC, BURST_8W_16R},
+        {1'000'000,  API_USAGE_SYNC,                               SINGLE_8W_8R},
+        {1'000'000,  API_USAGE_SYNC,                               BURST_8W_8R},
+        {1'000'000,  API_USAGE_SYNC,                               SINGLE_16W_8R},
+        {1'000'000,  API_USAGE_SYNC,                               BURST_16W_8R},
+        {1'000'000,  API_USAGE_SYNC,                               SINGLE_8W_16R},
+        {1'000'000,  API_USAGE_SYNC,                               BURST_8W_16R},
 
-        {200'000, API_USAGE_SYNC, SINGLE_8W_8R},
-        {200'000, API_USAGE_SYNC, BURST_8W_8R},
-        {200'000, API_USAGE_SYNC, SINGLE_16W_8R},
-        {200'000, API_USAGE_SYNC, BURST_16W_8R},
-        {200'000, API_USAGE_SYNC, SINGLE_8W_16R},
-        {200'000, API_USAGE_SYNC, BURST_8W_16R},
+        {200'000,    API_USAGE_SYNC,                               SINGLE_8W_8R},
+        {200'000,    API_USAGE_SYNC,                               BURST_8W_8R},
+        {200'000,    API_USAGE_SYNC,                               SINGLE_16W_8R},
+        {200'000,    API_USAGE_SYNC,                               BURST_16W_8R},
+        {200'000,    API_USAGE_SYNC,                               SINGLE_8W_16R},
+        {200'000,    API_USAGE_SYNC,                               BURST_8W_16R},
 
-        {10'000'000, API_USAGE_SYNC, SINGLE_8W_8R},
-        {10'000'000, API_USAGE_SYNC, BURST_8W_8R},
-        {10'000'000, API_USAGE_SYNC, SINGLE_16W_8R},
-        {10'000'000, API_USAGE_SYNC, BURST_16W_8R},
-        {10'000'000, API_USAGE_SYNC, SINGLE_8W_16R},
-        {10'000'000, API_USAGE_SYNC, BURST_8W_16R},
+        {10'000'000, API_USAGE_SYNC,                               SINGLE_8W_8R},
+        {10'000'000, API_USAGE_SYNC,                               BURST_8W_8R},
+        {10'000'000, API_USAGE_SYNC,                               SINGLE_16W_8R},
+        {10'000'000, API_USAGE_SYNC,                               BURST_16W_8R},
+        {10'000'000, API_USAGE_SYNC,                               SINGLE_8W_16R},
+        {10'000'000, API_USAGE_SYNC,                               BURST_8W_16R},
 
-        {1'000'000, API_USAGE_ASYNC | API_USAGE_CALL_ABORT_AFTER, SINGLE_8W_8R},
-        {1'000'000, API_USAGE_ASYNC, BURST_8W_8R},
-        {1'000'000, API_USAGE_ASYNC, SINGLE_16W_8R},
-        {1'000'000, API_USAGE_ASYNC, BURST_16W_8R},
-        {1'000'000, API_USAGE_ASYNC, SINGLE_8W_16R},
-        {1'000'000, API_USAGE_ASYNC, BURST_8W_16R},
+        {1'000'000,  API_USAGE_ASYNC | API_USAGE_CALL_ABORT_AFTER, SINGLE_8W_8R},
+        {1'000'000,  API_USAGE_ASYNC,                              BURST_8W_8R},
+        {1'000'000,  API_USAGE_ASYNC,                              SINGLE_16W_8R},
+        {1'000'000,  API_USAGE_ASYNC,                              BURST_16W_8R},
+        {1'000'000,  API_USAGE_ASYNC,                              SINGLE_8W_16R},
+        {1'000'000,  API_USAGE_ASYNC,                              BURST_8W_16R},
 
-        {200'000, API_USAGE_ASYNC | API_USAGE_CALL_ABORT_AFTER, SINGLE_8W_8R},
-        {200'000, API_USAGE_ASYNC, BURST_8W_8R},
-        {200'000, API_USAGE_ASYNC, SINGLE_16W_8R},
-        {200'000, API_USAGE_ASYNC, BURST_16W_8R},
-        {200'000, API_USAGE_ASYNC, SINGLE_8W_16R},
-        {200'000, API_USAGE_ASYNC, BURST_8W_16R},
+        {200'000,    API_USAGE_ASYNC | API_USAGE_CALL_ABORT_AFTER, SINGLE_8W_8R},
+        {200'000,    API_USAGE_ASYNC,                              BURST_8W_8R},
+        {200'000,    API_USAGE_ASYNC,                              SINGLE_16W_8R},
+        {200'000,    API_USAGE_ASYNC,                              BURST_16W_8R},
+        {200'000,    API_USAGE_ASYNC,                              SINGLE_8W_16R},
+        {200'000,    API_USAGE_ASYNC,                              BURST_8W_16R},
 
-        {10'000'000, API_USAGE_ASYNC, SINGLE_8W_8R},
-        {10'000'000, API_USAGE_ASYNC, BURST_8W_8R},
-        {10'000'000, API_USAGE_ASYNC, SINGLE_16W_8R},
-        {10'000'000, API_USAGE_ASYNC, BURST_16W_8R},
-        {10'000'000, API_USAGE_ASYNC, SINGLE_8W_16R},
-        {10'000'000, API_USAGE_ASYNC, BURST_8W_16R},
+        {10'000'000, API_USAGE_ASYNC,                              SINGLE_8W_8R},
+        {10'000'000, API_USAGE_ASYNC,                              BURST_8W_8R},
+        {10'000'000, API_USAGE_ASYNC,                              SINGLE_16W_8R},
+        {10'000'000, API_USAGE_ASYNC,                              BURST_16W_8R},
+        {10'000'000, API_USAGE_ASYNC,                              SINGLE_8W_16R},
+        {10'000'000, API_USAGE_ASYNC,                              BURST_8W_16R},
 };
 static bool TEST_VERBOSE = true;
 
 int main()
 {
     SimpleList<ScenarioResult> results;
-    ScenarioResult *result;
-    SimpleList<ScenarioResult>::SimpleListIterator result_iterator;
-    TestCaseResult *test_case_result;
-    SimpleList<TestCaseResult>::SimpleListIterator test_case_result_iterator;
-
 
     // prepare test_result structures
     for (const auto &test_configuration: test_configurations) {
@@ -1317,32 +905,29 @@ int main()
     // run tests
     printf("================================ start ================================\n");
     bmx160SPI3WireTester.set_log(TEST_VERBOSE);
-    result_iterator = results.iterator();
-    while ((result = result_iterator.next()) != nullptr) {
-        bmx160SPI3WireTester.test(result);
+    for (ScenarioResult &result: results) {
+        bmx160SPI3WireTester.test(&result);
     }
     printf("================================ finish ================================\n");
 
     // show results
     printf("================================ result ================================\n");
-    result_iterator = results.iterator();
     int scenario_i = 1;
     auto result_str = [](bool result) { return result ? "success" : "error"; };
     printf("|    |                                 api  |      case name | target freq (Hz) | actual freq (Hz) |    init |  result |    data |   clock |\n");
     printf("|----|--------------------------------------|----------------|------------------|------------------|---------|---------|---------|---------|\n");
-    while ((result = result_iterator.next()) != nullptr) {
-        test_case_result_iterator = result->test_case_results.iterator();
-        while ((test_case_result = test_case_result_iterator.next()) != nullptr) {
+    for (ScenarioResult &result: results) {
+        for (const TestCaseResult &test_case_result: result.test_case_results) {
             printf("| %2i | %36s | %14s | %16i | %16i | %7s | %7s | %7s | %7s |\n",
                    scenario_i,
-                   get_api_usage_name(result->configuration->api_usage),
-                   get_test_case_type_name(test_case_result->case_type),
-                   result->target_spi_frequency,
-                   result->actual_spi_frequency,
-                   result_str(result->init_error == 0),
-                   result_str(test_case_result->is_ok()),
-                   result_str(test_case_result->is_data_ok()),
-                   result_str(test_case_result->is_clock_ok())
+                   get_api_usage_name(result.configuration->api_usage),
+                   get_test_case_type_name(test_case_result.case_type),
+                   result.target_spi_frequency,
+                   result.actual_spi_frequency,
+                   result_str(result.init_error == 0),
+                   result_str(test_case_result.is_ok()),
+                   result_str(test_case_result.is_data_ok()),
+                   result_str(test_case_result.is_clock_ok())
             );
         }
         scenario_i++;
@@ -1356,3 +941,5 @@ int main()
 
     return 0;
 }
+
+#endif

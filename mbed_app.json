@@ -1,4 +1,22 @@
 {
+    "config": {
+        "test_target_main_3wire": {
+            "macro_name": "MAIN_3WIRE",
+            "value": 0
+        },
+        "test_target_main_4wire": {
+            "macro_name": "MAIN_4WIRE",
+            "value": 1
+        },
+        "test_target": {
+            "help": "Test target",
+            "accepted_values": [
+                "MAIN_3WIRE",
+                "MAIN_4WIRE"
+            ],
+            "value": "MAIN_3WIRE"
+        }
+    },
     "target_overrides": {
         "*": {
             "platform.stdio-baud-rate": 1000000,
