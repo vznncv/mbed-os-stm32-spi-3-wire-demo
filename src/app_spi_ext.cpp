@@ -63,7 +63,7 @@ void SPISyncTransfer::_process_transfer_event(int event)
         _transfer_flag.set(0x1);
     } else {
         // error
-        _transfer_flag.set(0x3);
+        _transfer_flag.set(0x2);
     }
 }
 

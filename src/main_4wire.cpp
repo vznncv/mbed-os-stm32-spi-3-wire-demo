@@ -215,8 +215,11 @@ public:
         ctx.reset();
         _test_multiple_words_transmission(test_result->test_case_results.create_and_append(), &ctx);
         ctx.reset();
+        // STM32H7 async api doesn't work in 16 bit mode
+#ifndef STM32H7
         _test_multiple_words_transmission_async(test_result->test_case_results.create_and_append(), &ctx);
         ctx.reset();
+#endif
         _test_multiple_words_transmission_with_default_fill(test_result->test_case_results.create_and_append(), &ctx);
         ctx.reset();
         _logger.info("================ complete test ================");
@@ -227,7 +230,7 @@ private:
     int _assert_tick_number(int actual_ticks, int expected_ticks)
     {
         if (actual_ticks != expected_ticks) {
-            _logger.error("Expect %i ticks, but get %i", actual_ticks, expected_ticks);
+            _logger.error("Expect %i ticks, but get %i", expected_ticks, actual_ticks);
             return -1;
         } else {
             return 0;
