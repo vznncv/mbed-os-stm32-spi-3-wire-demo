@@ -158,6 +158,16 @@ function targets_list_hierarchy() {
     jq --raw-output --arg target_name "$target_name" --slurp '. | add | map_values(.inherits | first) | . as $base_hierarchy |  ($target_name | while(.; $base_hierarchy[.]))' "${target_files[@]}"
 }
 
+function target_cleanup() {
+    local target_name="$1"
+    if [[ "$target_name" == TARGET_* ]] && [ -d "${PROJECT_DIR}/${target_name}" ]; then
+        target_name="${target_name#TARGET_}"
+    fi
+    echo "$target_name"
+}
+
+APP_TARGET=$(target_cleanup "$APP_TARGET")
+
 if ! targets_has_target "$MBED_TARGETS_PATH" "${APP_TARGET}"; then
     # Search custom_target.json
     APP_CUSTOM_TARGET_PATH="${PROJECT_DIR}/TARGET_${APP_TARGET}/custom_targets.json"
@@ -304,16 +314,16 @@ elif [[ "$APP_MBED_CLI" == "2" ]]; then
     mbed_ignore_path="$PROJECT_DIR/.mbedignore"
     mbed_ignore_content=""
     if [[ -f "$mbed_ignore_path" ]]; then
-       mbed_ignore_content="$(cat "$mbed_ignore_path")"
+        mbed_ignore_content="$(cat "$mbed_ignore_path")"
     fi
     # run mbed-tools command
     log_info "Run command: ${export_command[*]}"
     "${export_command[@]}"
     # restore initial state of `.mbedignore` root file
     if [[ -n "$mbed_ignore_path" ]]; then
-      echo "$mbed_ignore_content" > "$mbed_ignore_path"
+        echo "$mbed_ignore_content" >"$mbed_ignore_path"
     else
-      rm "$mbed_ignore_path"
+        rm "$mbed_ignore_path"
     fi
 
 else
