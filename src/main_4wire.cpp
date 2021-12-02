@@ -215,11 +215,8 @@ public:
         ctx.reset();
         _test_multiple_words_transmission(test_result->test_case_results.create_and_append(), &ctx);
         ctx.reset();
-        // STM32H7 async api doesn't work in 16 bit mode
-#ifndef STM32H7
         _test_multiple_words_transmission_async(test_result->test_case_results.create_and_append(), &ctx);
         ctx.reset();
-#endif
         _test_multiple_words_transmission_with_default_fill(test_result->test_case_results.create_and_append(), &ctx);
         ctx.reset();
         _logger.info("================ complete test ================");

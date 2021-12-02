@@ -66,7 +66,7 @@ while [[ $# -gt 0 ]]; do
         shift
         shift
         ;;
-    --eol-mode)
+    --eol|--eol-mode)
         eol_mode="$2"
         shift
         shift
