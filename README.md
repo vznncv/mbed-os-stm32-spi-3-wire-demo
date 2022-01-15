@@ -1,9 +1,14 @@
 # stm32-spi-demo
 
-Helper project that demonstrate/test 3/4-wire SPI protocol with STM board.
+Helper project that demonstrate/test 3/4-wire SPI protocol with STM32 board.
 
-Currently, project contains 3 and 4 wire SPI demo. Active demo project is selected by `test_target` option in
-the `mbed_app.json`.
+Currently, project contains the following demos:
+
+- `src/main_base` - base SPI communication demo for checking SPI with logic analyzer.
+- `src/main_3wire` - test to check SPI 3-wire mode with BMX160 sensor.
+- `src/main_4wire` - test to check SPI 4-wire mode with loopback (`MISO` is connected to `MOSI`)
+
+Active demo project is selected by `test_target` option in the `mbed_app.json`.
 
 ## 3-wire demo
 
@@ -72,3 +77,8 @@ where:
 
 The demo project performs some data transmission tests from `MOSI` to `MISO` pins directly to check SPI in 16 bit mode.
 The test results are printed to stdout as table.
+
+## base demo
+
+This demo has the same configuration like *4-wire demo (16-bit mode)* and is designed to check SPI output with any logic
+analyzer device.

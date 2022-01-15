@@ -8,13 +8,18 @@
             "macro_name": "MAIN_4WIRE",
             "value": 1
         },
+        "test_target_main_base": {
+            "macro_name": "MAIN_BASE",
+            "value": 2
+        },
         "test_target": {
             "help": "Test target",
             "accepted_values": [
                 "MAIN_3WIRE",
-                "MAIN_4WIRE"
+                "MAIN_4WIRE",
+                "MAIN_BASE"
             ],
-            "value": "MAIN_3WIRE"
+            "value": "MAIN_BASE"
         }
     },
     "target_overrides": {
